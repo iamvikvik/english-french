@@ -1,0 +1,649 @@
+{
+  "name": "Урок 1, 2, 3",
+  "cards": [
+    {
+      "fr": "maman",
+      "ru": "мама"
+    },
+    {
+      "fr": "papa",
+      "ru": "папа"
+    },
+    {
+      "fr": "Je suis",
+      "ru": "Я есть; я являюсь"
+    },
+    {
+      "fr": "Je t’aime",
+      "ru": "Я тебя люблю"
+    },
+    {
+      "fr": "que",
+      "ru": "что; который"
+    },
+    {
+      "fr": "bien",
+      "ru": "хорошо"
+    },
+    {
+      "fr": "l’amour existe",
+      "ru": "любовь существует"
+    },
+    {
+      "fr": "exister",
+      "ru": "существовать"
+    },
+    {
+      "fr": "danse",
+      "ru": "танец"
+    },
+    {
+      "fr": "voyage",
+      "ru": "путешествие"
+    },
+    {
+      "fr": "taxi",
+      "ru": "такси"
+    },
+    {
+      "fr": "exemple",
+      "ru": "пример"
+    },
+    {
+      "fr": "radio",
+      "ru": "радио"
+    },
+    {
+      "fr": "dictionnaire",
+      "ru": "словарь"
+    },
+    {
+      "fr": "leçon",
+      "ru": "урок"
+    },
+    {
+      "fr": "parler",
+      "ru": "говорить"
+    },
+    {
+      "fr": "je",
+      "ru": "я"
+    },
+    {
+      "fr": "français",
+      "ru": "французский язык; французский"
+    },
+    {
+      "fr": "peux",
+      "ru": "могу"
+    },
+    {
+      "fr": "un",
+      "ru": "один; неопределённый артикль"
+    },
+    {
+      "fr": "peu",
+      "ru": "немного"
+    },
+    {
+      "fr": "te",
+      "ru": "тебя; тебе"
+    },
+    {
+      "fr": "comprendre",
+      "ru": "понимать"
+    },
+    {
+      "fr": "comprends",
+      "ru": "понимаю; понимаешь"
+    },
+    {
+      "fr": "vous",
+      "ru": "вы; вас"
+    },
+    {
+      "fr": "ne … pas",
+      "ru": "не (отрицание)"
+    },
+    {
+      "fr": "travailler",
+      "ru": "работать"
+    },
+    {
+      "fr": "travaille",
+      "ru": "работаю; работает"
+    },
+    {
+      "fr": "travailler, c’est bien",
+      "ru": "Работать — это хорошо"
+    },
+    {
+      "fr": "c’est la vie",
+      "ru": "Такова жизнь"
+    },
+    {
+      "fr": "étudier",
+      "ru": "учиться; изучать"
+    },
+    {
+      "fr": "étudie",
+      "ru": "учусь; изучаю"
+    },
+    {
+      "fr": "apprendre",
+      "ru": "учить; изучать"
+    },
+    {
+      "fr": "apprends",
+      "ru": "учу; изучаю"
+    },
+    {
+      "fr": "apprendre le français en ligne",
+      "ru": "изучать французский онлайн"
+    },
+    {
+      "fr": "vivre",
+      "ru": "жить"
+    },
+    {
+      "fr": "vis en Russie",
+      "ru": "живу в России"
+    },
+    {
+      "fr": "venir",
+      "ru": "приходить; приезжать"
+    },
+    {
+      "fr": "viens de Russie",
+      "ru": "я из России; я приехал(а) из России"
+    },
+    {
+      "fr": "aimer",
+      "ru": "любить; нравиться"
+    },
+    {
+      "fr": "j’aime",
+      "ru": "я люблю; мне нравится"
+    },
+    {
+      "fr": "cette langue",
+      "ru": "этот язык"
+    },
+    {
+      "fr": "vidéo",
+      "ru": "видео"
+    },
+    {
+      "fr": "veux visiter la France",
+      "ru": "хочу посетить Францию"
+    },
+    {
+      "fr": "Paris",
+      "ru": "Париж"
+    },
+    {
+      "fr": "désolé",
+      "ru": "извините; сожалею (м. р.)"
+    },
+    {
+      "fr": "très bien",
+      "ru": "очень хорошо"
+    },
+    {
+      "fr": "je m’appelle",
+      "ru": "меня зовут"
+    },
+    {
+      "fr": "Alex",
+      "ru": "Алекс"
+    },
+    {
+      "fr": "Hélène",
+      "ru": "Элен"
+    },
+    {
+      "fr": "ville",
+      "ru": "город"
+    },
+    {
+      "fr": "ce pays",
+      "ru": "эта страна"
+    },
+    {
+      "fr": "ici",
+      "ru": "здесь"
+    },
+    {
+      "fr": "là",
+      "ru": "там"
+    },
+    {
+      "fr": "habiter ici",
+      "ru": "жить здесь"
+    },
+    {
+      "fr": "habiter là",
+      "ru": "жить там"
+    },
+    {
+      "fr": "est très intéressant",
+      "ru": "очень интересно"
+    },
+    {
+      "fr": "Champs-Élysées",
+      "ru": "Елисейские Поля"
+    },
+    {
+      "fr": "penser",
+      "ru": "думать"
+    },
+    {
+      "fr": "merci",
+      "ru": "спасибо"
+    },
+    {
+      "fr": "beaucoup",
+      "ru": "много; очень"
+    },
+    {
+      "fr": "connaître",
+      "ru": "знать; быть знакомым"
+    },
+    {
+      "fr": "couramment",
+      "ru": "бегло"
+    },
+    {
+      "fr": "correctement",
+      "ru": "правильно"
+    },
+    {
+      "fr": "et",
+      "ru": "и"
+    },
+    {
+      "fr": "aller en Angleterre",
+      "ru": "поехать в Англию"
+    },
+    {
+      "fr": "cette année",
+      "ru": "в этом году"
+    },
+    {
+      "fr": "l’année prochaine",
+      "ru": "в следующем году"
+    },
+    {
+      "fr": "aller aux États-Unis",
+      "ru": "поехать в США"
+    },
+    {
+      "fr": "dans",
+      "ru": "в"
+    },
+    {
+      "fr": "l’acheter",
+      "ru": "купить это"
+    },
+    {
+      "fr": "ça",
+      "ru": "это"
+    },
+    {
+      "fr": "ce billet",
+      "ru": "этот билет"
+    },
+    {
+      "fr": "voyager plus",
+      "ru": "путешествовать больше"
+    },
+    {
+      "fr": "des langues étrangères",
+      "ru": "иностранные языки"
+    },
+    {
+      "fr": "la musique",
+      "ru": "музыка"
+    },
+    {
+      "fr": "le sport",
+      "ru": "спорт"
+    },
+    {
+      "fr": "écouter la musique",
+      "ru": "слушать музыку"
+    },
+    {
+      "fr": "faire du sport",
+      "ru": "заниматься спортом"
+    },
+    {
+      "fr": "cette musique",
+      "ru": "эта музыка"
+    },
+    {
+      "fr": "cette idée",
+      "ru": "эта идея"
+    },
+    {
+      "fr": "cette vidéo",
+      "ru": "это видео"
+    },
+    {
+      "fr": "les autres",
+      "ru": "другие"
+    },
+    {
+      "fr": "personne",
+      "ru": "человек"
+    },
+    {
+      "fr": "qui",
+      "ru": "который; кто"
+    },
+    {
+      "fr": "communiquer",
+      "ru": "общаться"
+    },
+    {
+      "fr": "avec",
+      "ru": "с"
+    },
+    {
+      "fr": "Je parle français",
+      "ru": "Я говорю по-французски"
+    },
+    {
+      "fr": "Je peux parler français",
+      "ru": "Я могу говорить по-французски"
+    },
+    {
+      "fr": "Je peux parler un peu français",
+      "ru": "Я могу немного говорить по-французски"
+    },
+    {
+      "fr": "Je parle un peu français",
+      "ru": "Я немного говорю по-французски"
+    },
+    {
+      "fr": "Je te comprends",
+      "ru": "Я тебя понимаю"
+    },
+    {
+      "fr": "Je vous comprends",
+      "ru": "Я вас понимаю"
+    },
+    {
+      "fr": "Je ne comprends pas",
+      "ru": "Я не понимаю"
+    },
+    {
+      "fr": "Je ne te comprends pas",
+      "ru": "Я тебя не понимаю"
+    },
+    {
+      "fr": "Je ne vous comprends pas",
+      "ru": "Я вас не понимаю"
+    },
+    {
+      "fr": "Je travaille",
+      "ru": "Я работаю"
+    },
+    {
+      "fr": "J’étudie",
+      "ru": "Я учусь"
+    },
+    {
+      "fr": "J’apprends le français",
+      "ru": "Я изучаю французский"
+    },
+    {
+      "fr": "J’apprends le français en ligne",
+      "ru": "Я изучаю французский онлайн"
+    },
+    {
+      "fr": "Je vis en Russie",
+      "ru": "Я живу в России"
+    },
+    {
+      "fr": "Je viens de Russie",
+      "ru": "Я из России"
+    },
+    {
+      "fr": "J’aime le français",
+      "ru": "Я люблю французский язык"
+    },
+    {
+      "fr": "J’aime cette langue",
+      "ru": "Мне нравится этот язык"
+    },
+    {
+      "fr": "J’aime cette leçon",
+      "ru": "Мне нравится этот урок"
+    },
+    {
+      "fr": "J’aime cette vidéo",
+      "ru": "Мне нравится это видео"
+    },
+    {
+      "fr": "Je veux visiter la France",
+      "ru": "Я хочу посетить Францию"
+    },
+    {
+      "fr": "Je veux visiter Paris",
+      "ru": "Я хочу посетить Париж"
+    },
+    {
+      "fr": "Désolé, je ne comprends pas",
+      "ru": "Извините, я не понимаю"
+    },
+    {
+      "fr": "Désolé, je ne te comprends pas",
+      "ru": "Извини, я тебя не понимаю"
+    },
+    {
+      "fr": "Désolé, je ne vous comprends pas",
+      "ru": "Извините, я вас не понимаю"
+    },
+    {
+      "fr": "Je comprends cette leçon",
+      "ru": "Я понимаю этот урок"
+    },
+    {
+      "fr": "Je te comprends très bien",
+      "ru": "Я тебя очень хорошо понимаю"
+    },
+    {
+      "fr": "Je vous comprends très bien",
+      "ru": "Я вас очень хорошо понимаю"
+    },
+    {
+      "fr": "Je comprends cette leçon très bien",
+      "ru": "Я очень хорошо понимаю этот урок"
+    },
+    {
+      "fr": "Je m’appelle Alex",
+      "ru": "Меня зовут Алекс"
+    },
+    {
+      "fr": "Je m’appelle Hélène",
+      "ru": "Меня зовут Элен"
+    },
+    {
+      "fr": "J’aime cette ville",
+      "ru": "Мне нравится этот город"
+    },
+    {
+      "fr": "J’aime ce pays",
+      "ru": "Мне нравится эта страна"
+    },
+    {
+      "fr": "Je veux visiter cette ville",
+      "ru": "Я хочу посетить этот город"
+    },
+    {
+      "fr": "Je veux visiter ce pays",
+      "ru": "Я хочу посетить эту страну"
+    },
+    {
+      "fr": "J’habite ici",
+      "ru": "Я живу здесь"
+    },
+    {
+      "fr": "J’habite là",
+      "ru": "Я живу там"
+    },
+    {
+      "fr": "Je veux habiter ici",
+      "ru": "Я хочу жить здесь"
+    },
+    {
+      "fr": "Je veux habiter là",
+      "ru": "Я хочу жить там"
+    },
+    {
+      "fr": "Je vis ici",
+      "ru": "Я живу здесь"
+    },
+    {
+      "fr": "Je vis là",
+      "ru": "Я живу там"
+    },
+    {
+      "fr": "Le français est très intéressant",
+      "ru": "Французский язык очень интересный"
+    },
+    {
+      "fr": "Je pense que le français est très intéressant",
+      "ru": "Я думаю, что французский очень интересный"
+    },
+    {
+      "fr": "Merci beaucoup !",
+      "ru": "Большое спасибо!"
+    },
+    {
+      "fr": "Je veux connaître le français",
+      "ru": "Я хочу знать французский язык"
+    },
+    {
+      "fr": "Je veux parler français couramment",
+      "ru": "Я хочу свободно говорить по-французски"
+    },
+    {
+      "fr": "Je veux parler français correctement",
+      "ru": "Я хочу правильно говорить по-французски"
+    },
+    {
+      "fr": "Je veux parler français couramment et correctement",
+      "ru": "Я хочу говорить по-французски свободно и правильно"
+    },
+    {
+      "fr": "Je veux aller en France",
+      "ru": "Я хочу поехать во Францию"
+    },
+    {
+      "fr": "Je veux aller en Angleterre",
+      "ru": "Я хочу поехать в Англию"
+    },
+    {
+      "fr": "Je veux visiter la France cette année",
+      "ru": "Я хочу посетить Францию в этом году"
+    },
+    {
+      "fr": "Je veux visiter l’Angleterre l’année prochaine",
+      "ru": "Я хочу посетить Англию в следующем году"
+    },
+    {
+      "fr": "Je veux aller aux États-Unis",
+      "ru": "Я хочу поехать в США"
+    },
+    {
+      "fr": "Je veux vivre dans cette ville",
+      "ru": "Я хочу жить в этом городе"
+    },
+    {
+      "fr": "Je veux vivre dans ce pays",
+      "ru": "Я хочу жить в этой стране"
+    },
+    {
+      "fr": "Je veux l’acheter",
+      "ru": "Я хочу это купить"
+    },
+    {
+      "fr": "Je veux acheter ce billet",
+      "ru": "Я хочу купить этот билет"
+    },
+    {
+      "fr": "Je veux voyager",
+      "ru": "Я хочу путешествовать"
+    },
+    {
+      "fr": "Je veux voyager plus",
+      "ru": "Я хочу путешествовать больше"
+    },
+    {
+      "fr": "J’aime apprendre le français",
+      "ru": "Мне нравится изучать французский"
+    },
+    {
+      "fr": "J’aime apprendre le français en ligne",
+      "ru": "Мне нравится изучать французский онлайн"
+    },
+    {
+      "fr": "J’aime voyager",
+      "ru": "Я люблю путешествовать"
+    },
+    {
+      "fr": "J’aime apprendre des langues étrangères",
+      "ru": "Мне нравится изучать иностранные языки"
+    },
+    {
+      "fr": "J’aime la musique",
+      "ru": "Я люблю музыку"
+    },
+    {
+      "fr": "J’aime le sport",
+      "ru": "Я люблю спорт"
+    },
+    {
+      "fr": "J’aime cette musique",
+      "ru": "Мне нравится эта музыка"
+    },
+    {
+      "fr": "J’aime écouter la musique",
+      "ru": "Мне нравится слушать музыку"
+    },
+    {
+      "fr": "J’aime faire du sport",
+      "ru": "Мне нравится заниматься спортом"
+    },
+    {
+      "fr": "J’aime cette idée",
+      "ru": "Мне нравится эта идея"
+    },
+    {
+      "fr": "Je veux comprendre les autres",
+      "ru": "Я хочу понимать других"
+    },
+    {
+      "fr": "Je veux comprendre d’autres personnes",
+      "ru": "Я хочу понимать других людей"
+    },
+    {
+      "fr": "Je veux comprendre d’autres personnes qui connaissent le français",
+      "ru": "Я хочу понимать других людей, которые знают французский"
+    },
+    {
+      "fr": "Je veux comprendre d’autres personnes qui parlent français",
+      "ru": "Я хочу понимать других людей, которые говорят по-французски"
+    },
+    {
+      "fr": "Je veux communiquer avec d’autres personnes qui vivent en France",
+      "ru": "Я хочу общаться с другими людьми, которые живут во Франции"
+    },
+    {
+      "fr": "Je veux communiquer avec d’autres personnes qui connaissent le français",
+      "ru": "Я хочу общаться с другими людьми, которые знают французский"
+    }
+  ]
+}

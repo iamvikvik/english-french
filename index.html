@@ -169,6 +169,7 @@ select.inp{-webkit-appearance:none;appearance:none}
 @media (min-width:600px){.modes{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .optrow{display:flex;align-items:center;gap:10px}.optrow .opt{flex:1;min-width:0}.inline-audio{flex:none;vertical-align:middle;margin:4px}.recall-card{width:100%;min-height:230px;border:1px solid #e4e6ef;border-radius:28px;background:white;box-shadow:0 10px 35px #35335b0a;font:inherit;font-size:27px;padding:30px;overflow-wrap:anywhere;color:inherit}.fc{touch-action:pan-y}.tiles{flex-wrap:wrap;gap:9px}.tile{min-width:42px;min-height:48px}.built{overflow-wrap:anywhere;white-space:normal}.btn:disabled{opacity:.45}.rd{min-height:48px}.fcb .btn{padding-left:15px;padding-right:15px}
 
+.learn-count{display:flex;flex-direction:column;gap:3px;flex:none;font-size:12px;text-align:right;white-space:nowrap}.learn-count small{font-size:10px;font-weight:400;color:var(--mut)}
 </style></head><body><div id="app"></div>
 <script src="jszip.min.js"></script><script>'use strict';
 /* ===== helpers ===== */
@@ -275,7 +276,7 @@ const STUDY_DEFAULTS={ansT:true,ansD:false,mc:true,fc:false,wr:false,let:true,li
 function prefs(set=ST&&ST.set,lang=set?.lang||SET.lang){return Object.assign({},STUDY_DEFAULTS,SET.learnByLang?.[lang]||{},set?.learnPrefs||{})}
 function storePrefs(set,value){if(set){set.learnPrefs={...value};saveSetObj(set,false)}else{SET.learnByLang=SET.learnByLang||{};SET.learnByLang[SET.lang]={...value};saveSet()}}
 function voiceButton(text,lang=ST?.set?.lang||SET.lang){return `<button type="button" class="aud sm inline-audio" data-act="say" data-t="${esc(text)}" data-l="${lang}" aria-label="Прослушать произношение">${ICON.sound}</button>`}
-function recordCard(c,known){c.lv=known?3:0;c.seen=1;c.box=known?Math.max(1,c.box||0):0;c.due=known?Date.now()+864e5:0;persist(c)}
+function recordCard(c,known){c.learnAnswered=true;c.lv=known?3:0;c.seen=1;c.box=known?Math.max(1,c.box||0):0;c.due=known?Date.now()+864e5:0;persist(c)}
 async function qFlash(c,side='t'){
  const q=$('#qbox'),front=side==='t'?c.d:c.t,answer=sideTxt(c,side);let shown=false;
  q.innerHTML=`<div class="qtop"><div class="lbl">Карточка · вспомни перевод</div><button class="recall-card" id="recall">${esc(front)}</button>${voiceButton(c.t)}<div class="hint" id="recallhint">Нажми, чтобы увидеть ответ</div></div><div class="qbot"><div class="row c"><button class="btn orange" id="no" disabled>Ещё учу</button><button class="btn green" id="yes" disabled>Помню</button></div></div>`;
@@ -354,6 +355,10 @@ async function qWrite(c,side,dict){let answered=false;const ans=side==='t'?c.t:c
   $('#go').onclick=()=>fin(false);inp.onkeydown=e=>{if(e.key==='Enter')fin(false)};$('#dk').onclick=()=>fin(true)})}
 
 /* --- learn (Заучивание) --- */
+function hasLearnAnswer(c){return c.learnAnswered ?? ((c.lv||0)>0||(c.bad||0)>0)}
+function learnProgress(cards){const seen=cards.filter(hasLearnAnswer).length,known=cards.filter(mastered).length;return {seen,known,total:cards.length,percent:cards.length?Math.round(seen/cards.length*100):0}}
+function showLearnProgress(cards){const p=learnProgress(cards);setBar(p.percent,'');const el=$('.stc');if(el){el.classList.add('learn-count');el.innerHTML=`<b>Пройдено ${p.seen}/${p.total}</b><small>Выучено ${p.known}/${p.total}</small>`}}
+
 function typesFor(c){const L=prefs(),sides=[L.ansT&&'t',L.ansD&&'d'].filter(Boolean);const side=pick(sides.length?sides:['t']);const options=[];
  for(const k of ['fc','mc','let','wr'])if(L[k])options.push({k,side});
  if(L.listen)options.push({k:'listen',side:'d'});if(L.dic)options.push({k:'dic',side:'t'});
@@ -364,19 +369,19 @@ async function askType(c,t){if(t.k==='mc')return qMC(c,t.side,false);if(t.k==='l
 function learnCards(){return ST.set.cards.filter(c=>(!ST.star||c.star)&&c.t&&c.d)}
 async function runLearn(){const session=ST;const all=learnCards();if(!all.length){toast('В наборе нет карточек');return closeStudy()}
  if(all.every(mastered)){shell(100,'');$('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">🎉</div><div class="qterm">Всё выучено!</div><div class="hint">Можно начать заново или повторить сложные слова.</div></div><div class="qbot"><button class="btn wide" id="rs">Начать заново</button><button class="btn ghost wide" id="ex">Выйти</button></div>`;
-  return new Promise(r=>{$('#rs').onclick=async()=>{all.forEach(c=>{c.lv=0});await saveSetObj(ST.set,false);r(runLearn())};$('#ex').onclick=()=>{closeStudy();r()}})}
- const prog=()=>Math.round(all.reduce((a,c)=>a+Math.min(3,c.lv||0),0)/(3*all.length)*100);
- shell(prog(),'');
+  return new Promise(r=>{$('#rs').onclick=async()=>{all.forEach(c=>{c.lv=0;c.learnAnswered=false});await saveSetObj(ST.set,false);r(runLearn())};$('#ex').onclick=()=>{closeStudy();r()}})}
+ const prog=()=>learnProgress(all).percent;
+ shell(prog(),'');showLearnProgress(all);
  while(ST===session&&!session.closed){const left=all.filter(c=>!mastered(c));if(!left.length)break;
   let round=(prefs().shuffle?shuffle(left):left).sort((a,b)=>(a.lv||0)-(b.lv||0)).slice(0,7);const q=round.slice();const okR=new Set();
-  while(q.length&&ST===session&&!session.closed){const c=q.shift();setBar(prog(),`${all.filter(mastered).length}/${all.length}`);
+  while(q.length&&ST===session&&!session.closed){const c=q.shift();showLearnProgress(all);
    
-   const r=await askType(c,typesFor(c));if(ST!==session||session.closed)return;
+   const r=await askType(c,typesFor(c));if(ST!==session||session.closed)return;c.learnAnswered=true;
    if(r.ok){c.lv=Math.min(3,(c.lv||0)+1);okR.add(c);if(c.lv>=3&&!c.box){c.box=1;c.due=Date.now()+864e5}markDay()}
    else{c.lv=Math.max(0,(c.lv||0)-1);c.bad=(c.bad||0)+1;q.splice(Math.min(2,q.length),0,c)}
-   persist(c)}
+   persist(c);showLearnProgress(all)}
   if(ST!==session||session.closed)return;
-  const done=all.filter(mastered).length;setBar(prog(),`${done}/${all.length}`);
+  const done=all.filter(mastered).length;showLearnProgress(all);
   if(done===all.length)break;
   $('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">💪</div><div class="qterm">Раунд пройден</div><div class="hint">Выучено ${done} из ${all.length}</div><div class="rlist">${round.map(c=>`<div class="rl"><span class="dot lv${Math.min(3,c.lv||0)}"></span><b>${esc(c.t)}</b>${voiceButton(c.t)}<span>${esc(c.d)}</span></div>`).join('')}</div></div><div class="qbot"><button class="btn wide" id="nx">Дальше</button></div>`;
   await new Promise(r=>$('#nx').onclick=r)}
@@ -408,7 +413,7 @@ async function runCards(){const session=ST,C=Object.assign({front:'t',shuffle:fa
  APP.innerHTML=`<div class="st"><div class="sttop"><button class="ib sm" id="stx">${ICON.close}</button><div class="bar"><i style="width:${i/cards.length*100}%"></i></div><span class="stc">${i+1}/${cards.length}</span><button class="ib sm" id="opt" aria-label="Настройки карточек">${ICON.gear}</button></div><div class="fcwrap"><div class="fcnt"><span class="nl">${history.filter(x=>!x.known).length} · Ещё учу</span><span class="nk">${history.filter(x=>x.known).length} · Помню</span></div><div class="fc" id="fc"><div class="fcin"><div class="face f1">${image}<div class="ft">${esc(sideTxt(c,C.front))}</div></div><div class="face f2"><div class="ft">${esc(sideTxt(c,C.front==='t'?'d':'t'))}</div></div></div><button class="aud sm fca" id="aud" aria-label="Прослушать">${ICON.sound}</button></div><div class="hint">Нажми, чтобы перевернуть<br>← Ещё учу · Помню наизусть →</div><div class="row c fcb"><button class="btn orange" id="no">Ещё учу</button><button class="btn green" id="yes">Помню</button></div><button class="lk" id="undo" ${history.length?'':'disabled'}>↶ Отменить последний ответ</button></div></div>`;
  $('#stx').onclick=closeStudy;$('#aud').onclick=()=>speak(c.t,session.set.lang);$('#opt').onclick=()=>{if(!locked)cardSettings(session.set,()=>runCards())};const fc=$('#fc');let swiped=false;
  fc.onclick=e=>{if(locked||swiped||e.target.closest('button'))return;fc.classList.toggle('flip');if(prefs().tts&&((C.front==='t')!==fc.classList.contains('flip')))speak(c.t,session.set.lang)};
- const mark=known=>{if(locked||!active())return;locked=true;history.push({c,known,before:{lv:c.lv,seen:c.seen,box:c.box,due:c.due}});recordCard(c,known);fc.classList.add(known?'goR':'goL');setTimeout(()=>{if(active()){i++;draw()}},230)};
+ const mark=known=>{if(locked||!active())return;locked=true;history.push({c,known,before:{lv:c.lv,seen:c.seen,box:c.box,due:c.due,learnAnswered:c.learnAnswered}});recordCard(c,known);fc.classList.add(known?'goR':'goL');setTimeout(()=>{if(active()){i++;draw()}},230)};
  $('#yes').onclick=()=>mark(true);$('#no').onclick=()=>mark(false);$('#undo').onclick=()=>{if(locked||!history.length)return;const h=history.pop();Object.assign(h.c,h.before);persist(h.c);i--;draw()};
  let start=null;fc.addEventListener('touchstart',e=>{if(e.target.closest('button')||e.touches.length!==1)return;start={x:e.touches[0].clientX,y:e.touches[0].clientY};swiped=false},{passive:true});fc.addEventListener('touchend',e=>{if(!start)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;start=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.3){swiped=true;mark(dx>0)}},{passive:true});
  if(prefs().tts&&C.front==='t')speak(c.t,session.set.lang);
@@ -521,6 +526,7 @@ function viewHome(){const L=SET.lang,sets=setsOf(L);const words=sets.reduce((a,s
  ${L==='en'?`<div class="lbl">Английский по плейлистам</div><div class="chips" aria-label="Уровень английского">${[['A0','A0 · С нуля'],['A1','A1 · Начальный'],['own','Мои наборы']].map(([k,t])=>`<button class="chip${HOME_LEVEL===k?' on':''}" data-act="level" data-v="${k}">${t}</button>`).join('')}</div>${HOME_LEVEL==='A0'?'<a class="act" href="a0-materials.pdf" target="_blank" rel="noopener"><span class="ic">📖</span><span>Конспект A0<small>Открыть исходный PDF · 50 уроков</small></span></a>':''}`:''}
  <div class="sbar"><span>${ICON.search}</span><input id="hq" placeholder="Поиск по наборам и словам" value="${esc(QH)}" autocomplete="off"></div>
  ${q?searchHits(q):''}
+ ${L==='fr'?'<a class="act" href="fr-lessons-1-2-3.pdf" target="_blank" rel="noopener"><span class="ic">📖</span><span>Конспект · Урок 1, 2, 3</span></a>':''}
  <div class="lbl">Наборы · ${list.length}</div>
  ${list.length?list.map(s=>{const p=setProgress(s);return `<button class="setc" data-go="/s/${s.id}"><span class="sn">${s.pin?'📌 ':''}${esc(s.name)}</span><span class="sm2">${s.cards.length} ${plural(s.cards.length,'термин','термина','терминов')}${p?` · выучено ${p}%`:''}</span><span class="pbar"><i style="width:${p}%"></i></span></button>`}).join(''):`<div class="empty"><div class="big-emoji">${LANGS[L].flag}</div><b>Пока нет наборов</b><span>Нажми «+», чтобы создать набор, вставить список слов или распознать скриншот</span></div>`}
  <button class="fab" data-act="fab">${ICON.plus}</button></div>`}
@@ -547,7 +553,7 @@ function afterSet(s){const car=$('#car');if(!car)return;car.querySelectorAll('.c
  const dots=$('#dots');car.onscroll=()=>{const i=Math.round(car.scrollLeft/car.clientWidth);const n=Math.min(10,s.cards.length);const k=s.cards.length>10?Math.round(i/(s.cards.length-1)*(n-1)):i;dots.querySelectorAll('i').forEach((d,j)=>d.classList.toggle('on',j===k))}}
 function setMenu(s){menuSheet(s.name,[{ic:'✏️',t:'Изменить набор',fn:()=>go('/e/'+s.id)},{ic:'📋',t:'Добавить списком',fn:()=>pasteSheet(s.id)},{ic:'📷',t:'Добавить со скриншота',fn:()=>ocrFlow(s.id)},
  {ic:'📌',t:s.pin?'Открепить':'Закрепить сверху',fn:async()=>{s.pin=s.pin?0:1;await saveSetObj(s);render()}},
- {ic:'🔁',t:'Сбросить прогресс',fn:async()=>{if(!confirm('Сбросить прогресс этого набора?'))return;s.cards.forEach(c=>{c.lv=0;c.seen=0;c.box=0;c.due=0});await saveSetObj(s);render()}},
+ {ic:'🔁',t:'Сбросить прогресс',fn:async()=>{if(!confirm('Сбросить прогресс этого набора?'))return;s.cards.forEach(c=>{c.lv=0;c.seen=0;c.box=0;c.due=0;c.learnAnswered=false});await saveSetObj(s);render()}},
  {ic:'📤',t:'Поделиться списком',sub:'Текстом: слово – перевод',fn:()=>shareText(s.name,s.cards.map(c=>c.t+' – '+c.d).join('\n'))},
  {ic:'🗑️',t:'Удалить набор',red:1,fn:async()=>{if(!confirm('Удалить набор «'+s.name+'»?'))return;SETS.delete(s.id);await dbDel('sets',s.id);go('/');toast('Набор удалён','Вернуть',async()=>{SETS.set(s.id,s);await saveSetObj(s,false);render()})}}])}
 async function shareText(title,text){try{if(navigator.share){await navigator.share({title,text});return}}catch(e){return}try{await navigator.clipboard.writeText(text);toast('Скопировано')}catch(e){toast('Не удалось')}}
@@ -634,19 +640,20 @@ function viewSettings(){const vs=L=>VOICES.filter(v=>v.lang&&v.lang.toLowerCase(
  <div class="hint" style="text-align:left">Голоса берутся из iPhone. Лучшие можно скачать: Настройки iPhone → Универсальный доступ → Устный контент → Голоса.</div>
  <div class="lbl">Заучивание</div><button class="act" data-act="lsett"><span class="ic">⚙️</span><span>Параметры заучивания<small>Типы вопросов, строгость проверки, язык ответа</small></span></button>
  <div class="lbl">Данные</div><button class="act" data-go="/bk"><span class="ic">💾</span><span>Резервная копия<small>${SET.lastBackup?'Последняя: '+new Date(SET.lastBackup).toLocaleDateString('ru-RU'):'Ещё не делала'}</small></span></button>
+ <button class="act" data-act="fr123"><span class="ic">🇫🇷</span><span>Французский · Урок 1, 2, 3<small>Добавить набор из конспекта</small></span></button>
  <button class="act" data-act="a0"><span class="ic">📚</span><span>Уроки A0 из конспектов<small>Добавить заново 50 уроков (если удалила)</small></span></button>
  <button class="act" data-act="a1"><span class="ic">📚</span><span>Уроки A1 из конспектов<small>Добавить заново 50 уроков (если удалила)</small></span></button>
- <div class="hint">Версия 3 · Карточки и заучивание</div><div class="note">Все слова и прогресс хранятся только на этом телефоне. Делай резервную копию, чтобы не потерять.</div></div>`}
+ <div class="hint">Версия 4 · Прогресс и французский</div><div class="note">Все слова и прогресс хранятся только на этом телефоне. Делай резервную копию, чтобы не потерять.</div></div>`}
 function viewBackup(){return `<div class="wrap set"><div class="topbar"><button class="ib" data-go="/st">${ICON.back}</button><b>Резервная копия</b><span style="width:46px"></span></div>
  <div class="note">Один файл со всеми наборами, прогрессом и фото. Сохрани его в «Файлы» или iCloud Drive.</div><div id="bkbox"><button class="btn wide" data-act="mkbk">Подготовить копию</button></div>
  <div class="lbl">Восстановление</div><button class="btn ghost wide" data-act="rsbk">Восстановить из файла</button><div class="hint" style="text-align:left">Восстановление заменяет всё, что сейчас в приложении.</div></div>`}
 let BK=null;
-async function makeBackup(){const zip=new JSZip();const sets=[...SETS.values()];zip.file('data.json',JSON.stringify({app:'efr',v:1,exported:Date.now(),sets,settings:{learn:SET.learn,learnByLang:SET.learnByLang,voice:SET.voice,rate:SET.rate,days:SET.days,daysByLang:SET.daysByLang,lang:SET.lang,imported:SET.imported,importedA0:SET.importedA0}}));
+async function makeBackup(){const zip=new JSZip();const sets=[...SETS.values()];zip.file('data.json',JSON.stringify({app:'efr',v:1,exported:Date.now(),sets,settings:{learn:SET.learn,learnByLang:SET.learnByLang,voice:SET.voice,rate:SET.rate,days:SET.days,daysByLang:SET.daysByLang,lang:SET.lang,imported:SET.imported,importedA0:SET.importedA0,importedFrench123:SET.importedFrench123}}));
  for(const s of sets)for(const c of s.cards)if(c.img){const r=await dbGet('blobs',c.img);if(r)zip.file('img/'+c.img,r.blob,{binary:true})}return zip.generateAsync({type:'blob',compression:'STORE'})}
 async function restoreBackup(f){const zip=await JSZip.loadAsync(f);const d=JSON.parse(await zip.file('data.json').async('string'));if(d.app!=='efr')throw new Error('bad');
  await dbClear('sets');await dbClear('blobs');SETS.clear();for(const s of d.sets){SETS.set(s.id,s)}await dbPutMany('sets',d.sets);
  for(const n of Object.keys(zip.files)){if(!n.startsWith('img/')||zip.files[n].dir)continue;const b=await zip.files[n].async('blob');await dbPut('blobs',{id:n.slice(4),blob:new Blob([b],{type:'image/jpeg'})})}
- Object.assign(SET,d.settings||{});SET.importedA0=d.settings?.importedA0||0;saveSet();if(!SET.importedA0)await importA0()}
+ Object.assign(SET,d.settings||{});SET.importedA0=d.settings?.importedA0||0;saveSet();if(!SET.importedA0)await importA0();SET.importedFrench123=d.settings?.importedFrench123||0;if(!SET.importedFrench123)await importFrench123()}
 async function importA1(force){try{const r=await fetch('a1.json');const arr=await r.json();const exist=new Set(setsOf('en').map(s=>s.name));const out=[];
  arr.forEach((x,i)=>{if(!force&&exist.has(x.name))return;if(force&&exist.has(x.name))return;const s={id:uid(),lang:'en',name:x.name,cards:x.cards.map(c=>mkCard({t:c.en,d:c.ru})),order:1000+i,created:Date.now(),updated:Date.now()};SETS.set(s.id,s);out.push(s)});
  await dbPutMany('sets',out);SET.imported=1;saveSet();return out.length}catch(e){console.error(e);return 0}}
@@ -685,6 +692,7 @@ document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]'
   case'edocr':ocrFlow(null,p=>{EDIT.rows=EDIT.rows.filter(r=>r.t||r.d).concat(p.map(x=>({t:x.t,d:x.d})));redrawRows();toast('Добавлено строк: '+p.length)});break;
   case'vtest':speak(a.dataset.l==='fr'?'Bonjour, comment ça va ?':'Hello! How are you today?',a.dataset.l);break;
   case'rate':SET.rate=+a.dataset.v;saveSet();render();break;
+  case'fr123':{const n=await importFrench123();toast(n===null?'Не удалось загрузить. Проверь интернет':n?'Французские уроки добавлены':'Набор уже добавлен');break}
   case'a0':{const n=await importA0();toast(n===null?'Не удалось загрузить A0. Проверь интернет':n?'Добавлено уроков: '+n:'Все уроки уже на месте');break}
   case'a1':{const n=await importA1(true);toast(n?'Добавлено уроков: '+n:'Все уроки уже на месте');break}
   case'mkbk':{const box=$('#bkbox');box.innerHTML='<div class="hint">Собираю файл…</div>';try{const b=await makeBackup();const d=new Date();BK=new File([b],`slova-kopiya-${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}.zip`,{type:'application/zip'});box.innerHTML=`<div class="hint">Готово: ${(b.size/1048576).toFixed(1)} МБ</div><button class="btn wide" data-act="svbk">Сохранить файл</button>`}catch(err){box.innerHTML='<div class="hint">Не получилось</div>'}break}
@@ -693,11 +701,19 @@ document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]'
  }});
 document.addEventListener('change',e=>{const v=e.target.closest('[data-voice]');if(v){SET.voice[v.dataset.voice]=v.value;saveSet();speak(v.dataset.voice==='fr'?'Bonjour':'Hello',v.dataset.voice)}});
 
+async function importFrench123(){try{
+ const response=await fetch('fr-lessons-1-2-3.json');if(!response.ok)throw Error('French unavailable');const data=await response.json();if(!data.cards?.length)throw Error('Empty French');
+ const existing=[...SETS.values()].find(s=>s.lang==='fr'&&(s.sourceKey==='fr-123-v1'||s.name===data.name));
+ if(existing){SET.importedFrench123=1;saveSet();return 0}
+ const s={id:'builtin-fr-123-v1',sourceKey:'fr-123-v1',lang:'fr',name:data.name,cards:data.cards.map(c=>mkCard({t:c.fr,d:c.ru})),order:500,created:Date.now(),updated:Date.now()};
+ if(SETS.has(s.id))s.id=uid();await dbPut('sets',s);SETS.set(s.id,s);SET.importedFrench123=1;saveSet();return 1;
+ }catch(e){console.error(e);return null}}
 /* ===== boot ===== */
 async function boot(){await openDB();const all=await dbAll('sets');all.forEach(s=>SETS.set(s.id,s));
  if(!SET.imported&&!all.length){await importA1(false)}
  if(!SET.importedA0){const n=await importA0();if(n===null)toast('A0 пока не загрузился. Добавь уроки в настройках, когда появится интернет')}
  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+ if(!SET.importedFrench123)await importFrench123();
  render();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})}
 boot();
 </script></body></html>
