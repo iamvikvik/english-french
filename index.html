@@ -167,6 +167,8 @@ select.inp{-webkit-appearance:none;appearance:none}
 .mode b{min-width:0;flex:1}.mode .lk.set{z-index:2}
 .modes{grid-template-columns:repeat(2,minmax(0,1fr))}.mode{min-width:0}
 @media (min-width:600px){.modes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.optrow{display:flex;align-items:center;gap:10px}.optrow .opt{flex:1;min-width:0}.inline-audio{flex:none;vertical-align:middle;margin:4px}.recall-card{width:100%;min-height:230px;border:1px solid #e4e6ef;border-radius:28px;background:white;box-shadow:0 10px 35px #35335b0a;font:inherit;font-size:27px;padding:30px;overflow-wrap:anywhere;color:inherit}.fc{touch-action:pan-y}.tiles{flex-wrap:wrap;gap:9px}.tile{min-width:42px;min-height:48px}.built{overflow-wrap:anywhere;white-space:normal}.btn:disabled{opacity:.45}.rd{min-height:48px}.fcb .btn{padding-left:15px;padding-right:15px}
+
 </style></head><body><div id="app"></div>
 <script src="jszip.min.js"></script><script>'use strict';
 /* ===== helpers ===== */
@@ -215,8 +217,9 @@ const INTV=[0,1,3,7,16,35,90];
 function srsGood(c){c.box=Math.min(6,(c.box||0)+1);c.due=Date.now()+INTV[c.box]*864e5-36e5;c.ok=(c.ok||0)+1;markDay()}
 function srsBad(c){c.box=1;c.due=Date.now()+6e5;c.bad=(c.bad||0)+1;markDay()}
 const dueCards=lang=>allCards(lang).filter(x=>x.c.box>0&&x.c.due<=Date.now());
-function markDay(){const k=dayKey();SET.days[k]=(SET.days[k]||0)+1;SET.daysL=SET.daysL||{};const L=SET.daysL[SET.lang]=SET.daysL[SET.lang]||{};L[k]=(L[k]||0)+1;saveSet()}
-function streak(){let n=0;const d=new Date();if(!SET.days[dayKey()])d.setDate(d.getDate()-1);while(SET.days[dayKey(d.getTime())]){n++;d.setDate(d.getDate()-1)}return n}
+function activity(){SET.daysByLang=SET.daysByLang||{en:{...SET.days},fr:{}};return SET.daysByLang[SET.lang]||(SET.daysByLang[SET.lang]={})}
+function markDay(){const k=dayKey(),days=activity();days[k]=(days[k]||0)+1;saveSet()}
+function streak(){let n=0;const d=new Date();if(!activity()[dayKey()])d.setDate(d.getDate()-1);while(activity()[dayKey(d.getTime())]){n++;d.setDate(d.getDate()-1)}return n}
 
 /* ===== answer checking ===== */
 const deacc=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/œ/g,'oe').replace(/æ/g,'ae');
@@ -225,7 +228,7 @@ const expand=s=>s.replace(/\bi'm\b/g,'i am').replace(/\b(\w+)'re\b/g,'$1 are').r
 function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
 function variants(ans){const v=[ans];if(/[,;/]/.test(ans))ans.split(/[,;/]/).map(x=>x.trim()).filter(x=>x.length>1).forEach(x=>v.push(x));return v}
 /* returns {ok, close} */
-function check(given,ans,mode){mode=mode||SET.learn.corr;const g=norm(given);if(!g)return{ok:false};
+function check(given,ans,mode){mode=mode||prefs().corr;const g=norm(given);if(!g)return{ok:false};
  for(const a0 of variants(ans)){const a=norm(a0);if(!a)continue;
   if(g===a||expand(g)===expand(a))return{ok:true,exact:g===a};
   if(mode!=='strict'){const ga=deacc(expand(g)),aa=deacc(expand(a));if(ga===aa)return{ok:true,accent:true};
@@ -268,6 +271,18 @@ function parsePairs(text){const out=[];const lines=String(text).replace(/\r/g,''
  if(pend&&pend.t&&!pend.d)out.push(pend);
  return out.filter(p=>p.t.length<200)}
 
+const STUDY_DEFAULTS={ansT:true,ansD:false,mc:true,fc:false,wr:false,let:true,listen:false,dic:false,shuffle:true,tts:false,corr:'mod',retype:false};
+function prefs(set=ST&&ST.set,lang=set?.lang||SET.lang){return Object.assign({},STUDY_DEFAULTS,SET.learnByLang?.[lang]||{},set?.learnPrefs||{})}
+function storePrefs(set,value){if(set){set.learnPrefs={...value};saveSetObj(set,false)}else{SET.learnByLang=SET.learnByLang||{};SET.learnByLang[SET.lang]={...value};saveSet()}}
+function voiceButton(text,lang=ST?.set?.lang||SET.lang){return `<button type="button" class="aud sm inline-audio" data-act="say" data-t="${esc(text)}" data-l="${lang}" aria-label="Прослушать произношение">${ICON.sound}</button>`}
+function recordCard(c,known){c.lv=known?3:0;c.seen=1;c.box=known?Math.max(1,c.box||0):0;c.due=known?Date.now()+864e5:0;persist(c)}
+async function qFlash(c,side='t'){
+ const q=$('#qbox'),front=side==='t'?c.d:c.t,answer=sideTxt(c,side);let shown=false;
+ q.innerHTML=`<div class="qtop"><div class="lbl">Карточка · вспомни перевод</div><button class="recall-card" id="recall">${esc(front)}</button>${voiceButton(c.t)}<div class="hint" id="recallhint">Нажми, чтобы увидеть ответ</div></div><div class="qbot"><div class="row c"><button class="btn orange" id="no" disabled>Ещё учу</button><button class="btn green" id="yes" disabled>Помню</button></div></div>`;
+ $('#recall').onclick=()=>{shown=!shown;$('#recall').textContent=shown?answer:front;$('#no').disabled=false;$('#yes').disabled=false;$('#recallhint').textContent='Оцени, удалось ли вспомнить ответ';};
+ return new Promise(resolve=>{let done=false;const finish=ok=>{if(done)return;done=true;resolve({ok})};$('#no').onclick=()=>finish(false);$('#yes').onclick=()=>finish(true)})
+}
+
 /* ===== study modes ===== */
 let ST=null; // current study session
 const sideTxt=(c,side)=>side==='t'?c.t:c.d;
@@ -291,9 +306,9 @@ function feedback(ok,c,{given,answer,ansLang,typed,note}={}){return new Promise(
  const showAns=answer!=null?answer:c.t;
  el.innerHTML=ok?`<div class="fbh">${ICON.check2}<b>${pick(['Верно!','Отлично!','Так держать!','Супер!'])}</b>${note?`<span>${esc(note)}</span>`:''}</div><div class="fbw"><button class="aud sm" id="fba">${ICON.sound}</button><span><b>${esc(c.t)}</b><br>${esc(c.d)}</span></div><button class="btn wide" id="fbn">Продолжить</button>`
  :`<div class="fbh">${ICON.xx}<b>${typed?'Неправильно':'Правильный ответ'}</b></div>${given?`<div class="fbg">Твой ответ: <s>${esc(given)}</s></div>`:''}<div class="fbw"><button class="aud sm" id="fba">${ICON.sound}</button><span><b>${esc(showAns)}</b>${answer!=null&&answer!==c.t?`<br>${esc(c.t)}`:`<br>${esc(c.d)}`}</span></div>
-  ${typed&&SET.learn.retype?`<input class="inp" id="fbr" placeholder="Введи правильный ответ" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`:''}
-  <div class="row">${typed?`<button class="btn ghost" id="fbo">Я права</button>`:''}<button class="btn wide" id="fbn">${typed&&SET.learn.retype?'Проверить':'Продолжить'}</button></div>`;
- document.body.appendChild(el);if(SET.learn.tts||!ok)speak(c.t,SET.lang);
+  ${typed&&prefs().retype?`<input class="inp" id="fbr" placeholder="Введи правильный ответ" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`:''}
+  <div class="row">${typed?`<button class="btn ghost" id="fbo">Я права</button>`:''}<button class="btn wide" id="fbn">${typed&&prefs().retype?'Проверить':'Продолжить'}</button></div>`;
+ document.body.appendChild(el);if(prefs().tts||!ok)speak(c.t,SET.lang);
  el.querySelector('#fba').onclick=()=>speak(c.t,SET.lang);
  const done=v=>{el.remove();res(v)};const r=el.querySelector('#fbr');
  if(r){setTimeout(()=>r.focus(),50);r.onkeydown=e=>{if(e.key==='Enter')el.querySelector('#fbn').click()}}
@@ -303,111 +318,120 @@ function feedback(ok,c,{given,answer,ansLang,typed,note}={}){return new Promise(
 /* --- question types: each returns {ok} --- */
 async function qIntro(c){const q=$('#qbox');q.innerHTML=`<div class="qtop">${await imgTag(c)}<div class="lbl">Новое слово</div><div class="qterm big">${esc(c.t)}</div><div class="qsub">${esc(c.d)}</div><div class="row c">${audBtn()}<button class="aud sm" id="slow">🐢</button></div></div><div class="qbot"><button class="btn yellow wide" id="ok">Понятно</button></div>`;
  bindAudio(c.t,SET.lang);speak(c.t,SET.lang);c.seen=1;return new Promise(r=>$('#ok').onclick=()=>r({ok:true,intro:true}))}
-async function qMC(c,side,listen){const ans=sideTxt(c,side==='t'?'t':'d');const promptSide=side==='t'?'d':'t';const opts=shuffle([ans,...distract(c,side==='t'?'t':'d',3)]);
+async function qMC(c,side,listen){const session=ST;let answered=false;const ans=sideTxt(c,side==='t'?'t':'d');const promptSide=side==='t'?'d':'t';const opts=shuffle([ans,...distract(c,side==='t'?'t':'d',3)]);
  const q=$('#qbox');const pr=listen?`${audBtn(true)}<div class="hint">Послушай и выбери правильный перевод</div>`:`${await imgTag(c)}<div class="qterm">${esc(sideTxt(c,promptSide))}</div>${promptSide==='t'?`<div class="row c">${audBtn()}</div>`:''}<div class="hint">Выбери правильный ${side==='t'?'вариант':'перевод'}</div>`;
- q.innerHTML=`<div class="qtop">${pr}</div><div class="qbot"><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><button class="lk" id="dk">Не знаю</button></div>`;
- bindAudio(c.t,SET.lang);if(listen||(promptSide==='t'&&SET.learn.tts))speak(c.t,SET.lang);
- return new Promise(res=>{const fin=async(i)=>{q.querySelectorAll('.opt').forEach(b=>{b.disabled=true;const v=opts[+b.dataset.i];if(v===ans)b.classList.add('right');else if(+b.dataset.i===i)b.classList.add('wrong')});
-   const ok=i>=0&&opts[i]===ans;await sleep(ok?350:700);const f=await feedback(ok,c,{answer:ans===c.t?c.t:ans,given:i>=0&&!ok?opts[i]:''});res({ok:f===true||f==='override'})};
+ q.innerHTML=`<div class="qtop">${pr}</div><div class="qbot"><div class="opts">${opts.map((o,i)=>`<div class="optrow"><button class="opt" data-i="${i}">${esc(o)}</button>${side==='t'?voiceButton(o):''}</div>`).join('')}</div><button class="lk" id="dk">Не знаю</button></div>`;
+ bindAudio(c.t,SET.lang);if(listen||(promptSide==='t'&&prefs().tts))speak(c.t,SET.lang);
+ return new Promise(res=>{const fin=async(i)=>{if(answered)return;answered=true;$('#dk').disabled=true;q.querySelectorAll('.opt').forEach(b=>{b.disabled=true;const v=opts[+b.dataset.i];if(v===ans)b.classList.add('right');else if(+b.dataset.i===i)b.classList.add('wrong')});
+   const ok=i>=0&&opts[i]===ans;await sleep(ok?350:700);if(ST!==session)return res({ok:false});const f=await feedback(ok,c,{answer:ans===c.t?c.t:ans,given:i>=0&&!ok?opts[i]:''});res({ok:f===true||f==='override'})};
   q.querySelectorAll('.opt').forEach(b=>b.onclick=()=>fin(+b.dataset.i));$('#dk').onclick=()=>fin(-1)})}
 function tilesOf(t){const words=t.split(/\s+/).filter(w=>w&&!/^[–—-]$/.test(w));if(words.length>1&&t.length>12)return{w:1,parts:words};return{w:0,parts:[...t].filter(ch=>ch!==' ')}}
-async function qLetters(c){const T0=c.t.trim();const T=/\s[–—-]\s/.test(T0)?T0.split(/\s[–—-]\s/).join(' '):T0;const {w,parts}=tilesOf(T);const q=$('#qbox');let pos=0,miss=0;
- const order=shuffle(parts.map((p,i)=>({p,i})));
- q.innerHTML=`<div class="qtop">${await imgTag(c)}<div class="qpill">${esc(c.d)}</div><div class="hint">${w?'Собери фразу':'Собери слово'}</div><div class="built${w?' w':''}" id="built"></div></div><div class="qbot"><div class="tiles${w?' w':''}">${order.map((o,k)=>`<button class="tile" data-k="${k}">${esc(o.p)}</button>`).join('')}</div><div class="row c"><button class="lk" id="hint">Подсказка</button><button class="lk" id="dk">Не знаю</button></div></div>`;
- const built=$('#built');const tiles=[...q.querySelectorAll('.tile')];
- const render=()=>{const done=w?parts.slice(0,pos).join(' '):(()=>{let s='',k=0;for(const ch of T){if(ch===' '){if(k<pos)s+=' ';continue}if(k>=pos)break;s+=ch;k++}return s})();built.textContent=done};
- return new Promise(res=>{const finish=async(ok)=>{tiles.forEach(t=>t.disabled=true);built.textContent=T;built.classList.add(ok?'okc':'badc');speak(T,SET.lang);await sleep(500);const f=await feedback(ok,c,{answer:T0,note:miss===1?'одна ошибка':''});res({ok:f===true||f==='override'})};
-  const place=t=>{const o=order[+t.dataset.k];if(norm(o.p)===norm(parts[pos])||o.p===parts[pos]){t.classList.add('used');t.disabled=true;pos++;render();if(pos>=parts.length)finish(miss<=1)}else{miss++;t.classList.add('shake');setTimeout(()=>t.classList.remove('shake'),400)}};
-  tiles.forEach(t=>t.onclick=()=>place(t));
-  $('#hint').onclick=()=>{const t=tiles.find(t=>!t.disabled&&(order[+t.dataset.k].p===parts[pos]));if(t){miss++;place(t)}};
-  $('#dk').onclick=()=>finish(false)})}
+async function qLetters(c,side='t'){
+ const session=ST,q=$('#qbox'),answer=sideTxt(c,side).trim().normalize('NFC'),prompt=sideTxt(c,side==='t'?'d':'t');
+ const tokens=answer.split(/(\s+)/),words=tokens.filter(t=>t.trim());let word=0,pos=0,miss=0,finished=false;const builtWords=[];
+ q.innerHTML=`<div class="qtop">${await imgTag(c)}<div class="qpill">${esc(prompt)}</div>${voiceButton(c.t)}<div class="hint">Собери ${words.length>1?'фразу по буквам':'слово по буквам'}</div><div class="built" id="built"></div><div class="hint" id="wordcount"></div></div><div class="qbot"><div class="tiles" id="lettertiles"></div><div class="row c"><button class="lk" id="hint">Подсказка</button><button class="lk" id="dk">Не знаю</button></div></div>`;
+ const display=()=>{$('#built').textContent=[...builtWords,[...words[word]||''].slice(0,pos).join('')].filter(Boolean).join(' ');$('#wordcount').textContent=`Слово ${Math.min(word+1,words.length)} из ${words.length}`};
+ return new Promise(resolve=>{
+  const finish=async ok=>{if(finished||ST!==session)return;finished=true;q.querySelectorAll('button:not([data-act])').forEach(b=>b.disabled=true);$('#built').textContent=answer;const f=await feedback(ok,c,{answer});resolve({ok:f===true||f==='override'})};
+  const drawWord=()=>{if(word>=words.length){finish(miss===0);return}pos=0;const chars=[...words[word]];const bank=shuffle(chars.map((ch,i)=>({ch,i})));$('#lettertiles').innerHTML=bank.map((x,i)=>`<button class="tile" data-letter="${i}">${esc(x.ch)}</button>`).join('');display();
+   const place=(button,hint=false)=>{if(finished||ST!==session||button.disabled)return;const ch=bank[+button.dataset.letter].ch;if(ch.toLocaleLowerCase()!==chars[pos].toLocaleLowerCase()){miss++;button.classList.add('shake');setTimeout(()=>button.classList.remove('shake'),350);return}if(hint)miss++;button.disabled=true;button.classList.add('used');pos++;display();if(pos===chars.length){builtWords.push(words[word]);word++;drawWord()}};
+   q.querySelectorAll('[data-letter]').forEach(b=>b.onclick=()=>place(b));$('#hint').onclick=()=>{const b=[...q.querySelectorAll('[data-letter]')].find(b=>!b.disabled&&bank[+b.dataset.letter].ch===chars[pos]);if(b)place(b,true)};
+  };$('#dk').onclick=()=>finish(false);drawWord();
+ })
+}
+
+
 const ACC={fr:['é','è','ê','à','â','ç','ù','û','ô','î','ï','ë','œ'],en:[]};
-async function qWrite(c,side,dict){const ans=side==='t'?c.t:c.d;const lang=side==='t'?SET.lang:'ru';const q=$('#qbox');
+async function qWrite(c,side,dict){let answered=false;const ans=side==='t'?c.t:c.d;const lang=side==='t'?SET.lang:'ru';const q=$('#qbox');
  const pr=dict?`${audBtn(true)}<div class="row c"><button class="aud sm" id="slow">🐢</button></div><div class="hint">Послушай и напиши</div>`:`${await imgTag(c)}<div class="qterm">${esc(side==='t'?c.d:c.t)}</div>${side==='d'?`<div class="row c">${audBtn()}</div>`:''}<div class="hint">Напиши ${side==='t'?'по-'+(SET.lang==='en'?'английски':'французски'):'перевод на русский'}</div>`;
  q.innerHTML=`<div class="qtop">${pr}</div><div class="qbot">${lang==='fr'?`<div class="acc">${ACC.fr.map(a=>`<button type="button" data-a="${a}">${a}</button>`).join('')}</div>`:''}<div class="wrow"><input class="inp" id="ans" placeholder="Введи ответ" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="go" id="go">${ICON.up}</button></div><div class="row c"><button class="lk" id="dk">Не знаю</button></div></div>`;
  bindAudio(c.t,SET.lang);if(dict)setTimeout(()=>speak(c.t,SET.lang),250);
  const inp=$('#ans');setTimeout(()=>inp.focus(),60);
  q.querySelectorAll('[data-a]').forEach(b=>{b.onpointerdown=e=>e.preventDefault();b.onclick=()=>{const s=inp.selectionStart||inp.value.length;inp.value=inp.value.slice(0,s)+b.dataset.a+inp.value.slice(inp.selectionEnd||s);inp.setSelectionRange(s+1,s+1);inp.focus()}});
- return new Promise(res=>{const fin=async(dk)=>{const v=dk?'':inp.value;if(!dk&&!v.trim()){inp.focus();return}inp.blur();const r=dk?{ok:false}:check(v,ans);
+ return new Promise(res=>{const fin=async(dk)=>{if(answered)return;const v=dk?'':inp.value;if(!dk&&!v.trim()){inp.focus();return}answered=true;inp.blur();const r=dk?{ok:false}:check(v,ans);
    const note=r.ok?(r.accent?'проверь акценты: '+ans:r.typo?'с опечаткой: '+ans:''):'';
    const f=await feedback(r.ok,c,{given:v,answer:ans,typed:!dk&&!r.ok,note});res({ok:r.ok||f==='override'})};
   $('#go').onclick=()=>fin(false);inp.onkeydown=e=>{if(e.key==='Enter')fin(false)};$('#dk').onclick=()=>fin(true)})}
 
 /* --- learn (Заучивание) --- */
-function typesFor(c){const L=SET.learn;const ansSides=[L.ansT?'t':null,L.ansD?'d':null].filter(Boolean);if(!ansSides.length)ansSides.push('t');
- const sideW=()=>ansSides.length===2?(Math.random()<.7?'t':'d'):ansSides[0];
- const lv=c.lv||0;const opts=[];
- if(lv===0){if(L.mc)opts.push({k:'mc',side:sideW()});if(L.listen)opts.push({k:'listen'});if(!opts.length)opts.push({k:L.let?'let':'wr',side:'t'})}
- else if(lv===1){if(L.let)opts.push({k:'let'});if(L.mc&&!L.let)opts.push({k:'mc',side:'t'});if(!opts.length)opts.push({k:L.wr?'wr':'dic',side:sideW()})}
- else{if(L.wr)opts.push({k:'wr',side:sideW()});if(L.dic)opts.push({k:'dic'});if(!opts.length)opts.push({k:L.let?'let':'mc',side:'t'})}
- return pick(opts)}
-async function askType(c,t){if(t.k==='mc')return qMC(c,t.side,false);if(t.k==='listen')return qMC(c,'d',true);if(t.k==='let')return qLetters(c);if(t.k==='dic')return qWrite(c,'t',true);return qWrite(c,t.side||'t',false)}
+function typesFor(c){const L=prefs(),sides=[L.ansT&&'t',L.ansD&&'d'].filter(Boolean);const side=pick(sides.length?sides:['t']);const options=[];
+ for(const k of ['fc','mc','let','wr'])if(L[k])options.push({k,side});
+ if(L.listen)options.push({k:'listen',side:'d'});if(L.dic)options.push({k:'dic',side:'t'});
+ return pick(options.length?options:[{k:'fc',side}])}
+
+
+async function askType(c,t){if(t.k==='mc')return qMC(c,t.side,false);if(t.k==='listen')return qMC(c,'d',true);if(t.k==='fc')return qFlash(c,t.side);if(t.k==='let')return qLetters(c,t.side||'t');if(t.k==='dic')return qWrite(c,'t',true);return qWrite(c,t.side||'t',false)}
 function learnCards(){return ST.set.cards.filter(c=>(!ST.star||c.star)&&c.t&&c.d)}
-async function runLearn(){const all=learnCards();if(!all.length){toast('В наборе нет карточек');return closeStudy()}
+async function runLearn(){const session=ST;const all=learnCards();if(!all.length){toast('В наборе нет карточек');return closeStudy()}
  if(all.every(mastered)){shell(100,'');$('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">🎉</div><div class="qterm">Всё выучено!</div><div class="hint">Можно начать заново или повторить сложные слова.</div></div><div class="qbot"><button class="btn wide" id="rs">Начать заново</button><button class="btn ghost wide" id="ex">Выйти</button></div>`;
   return new Promise(r=>{$('#rs').onclick=async()=>{all.forEach(c=>{c.lv=0});await saveSetObj(ST.set,false);r(runLearn())};$('#ex').onclick=()=>{closeStudy();r()}})}
  const prog=()=>Math.round(all.reduce((a,c)=>a+Math.min(3,c.lv||0),0)/(3*all.length)*100);
  shell(prog(),'');
- while(ST&&!ST.closed){const left=all.filter(c=>!mastered(c));if(!left.length)break;
-  let round=(SET.learn.shuffle?shuffle(left):left).sort((a,b)=>(a.lv||0)-(b.lv||0)).slice(0,7);const q=round.slice();const okR=new Set();
-  while(q.length&&ST&&!ST.closed){const c=q.shift();setBar(prog(),`${all.filter(mastered).length}/${all.length}`);
-   if(!c.seen&&(c.lv||0)===0){await qIntro(c);if(!ST||ST.closed)return}
-   const r=await askType(c,typesFor(c));if(!ST||ST.closed)return;
+ while(ST===session&&!session.closed){const left=all.filter(c=>!mastered(c));if(!left.length)break;
+  let round=(prefs().shuffle?shuffle(left):left).sort((a,b)=>(a.lv||0)-(b.lv||0)).slice(0,7);const q=round.slice();const okR=new Set();
+  while(q.length&&ST===session&&!session.closed){const c=q.shift();setBar(prog(),`${all.filter(mastered).length}/${all.length}`);
+   
+   const r=await askType(c,typesFor(c));if(ST!==session||session.closed)return;
    if(r.ok){c.lv=Math.min(3,(c.lv||0)+1);okR.add(c);if(c.lv>=3&&!c.box){c.box=1;c.due=Date.now()+864e5}markDay()}
    else{c.lv=Math.max(0,(c.lv||0)-1);c.bad=(c.bad||0)+1;q.splice(Math.min(2,q.length),0,c)}
    persist(c)}
-  if(!ST||ST.closed)return;
+  if(ST!==session||session.closed)return;
   const done=all.filter(mastered).length;setBar(prog(),`${done}/${all.length}`);
   if(done===all.length)break;
-  $('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">💪</div><div class="qterm">Раунд пройден</div><div class="hint">Выучено ${done} из ${all.length}</div><div class="rlist">${round.map(c=>`<div class="rl"><span class="dot lv${Math.min(3,c.lv||0)}"></span><b>${esc(c.t)}</b><span>${esc(c.d)}</span></div>`).join('')}</div></div><div class="qbot"><button class="btn wide" id="nx">Дальше</button></div>`;
+  $('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">💪</div><div class="qterm">Раунд пройден</div><div class="hint">Выучено ${done} из ${all.length}</div><div class="rlist">${round.map(c=>`<div class="rl"><span class="dot lv${Math.min(3,c.lv||0)}"></span><b>${esc(c.t)}</b>${voiceButton(c.t)}<span>${esc(c.d)}</span></div>`).join('')}</div></div><div class="qbot"><button class="btn wide" id="nx">Дальше</button></div>`;
   await new Promise(r=>$('#nx').onclick=r)}
- if(!ST||ST.closed)return;
+ if(ST!==session||session.closed)return;
  setBar(100,'');$('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">🏆</div><div class="qterm">Набор выучен!</div><div class="hint">Через день слова появятся в «Повторении», чтобы закрепиться надолго.</div></div><div class="qbot"><button class="btn wide" id="ex">Готово</button></div>`;$('#ex').onclick=closeStudy}
-function learnSettings(onClose){const L=SET.learn;const tg=(k,t,sub)=>`<label class="tg"><span>${t}${sub?`<small>${sub}</small>`:''}</span><input type="checkbox" data-k="${k}"${L[k]?' checked':''}><i></i></label>`;
- const el=sheet(`<h3>Параметры</h3><div class="card2"><b>Основные</b>${tg('shuffle','Перемешать термины')}${tg('tts','Озвучка','Произносить слова автоматически')}</div>
- <div class="card2"><b>Отвечать на</b>${tg('ansT',LANGS[SET.lang].ru[0].toUpperCase()+LANGS[SET.lang].ru.slice(1))}${tg('ansD','Русском')}</div>
- <div class="card2"><b>Типы вопросов</b>${tg('mc','С выбором ответов')}${tg('listen','Послушай и выбери перевод')}${tg('let','Собери слово из букв','Тренирует написание')}${tg('wr','Письменные')}${tg('dic','Диктант','Слушаешь и пишешь')}</div>
- <div class="card2"><b>Проверка ответа</b>${[['soft','Мягкая','Допускаются опечатки и пропущенные буквы'],['mod','Умеренная','Нужен точный ответ, прощаются акценты и одна опечатка'],['strict','Строгая','Только точное совпадение (не важны регистр, знаки препинания и текст в скобках)']].map(([k,t,s])=>`<label class="rd"><span>${t}<small>${s}</small></span><input type="radio" name="corr" value="${k}"${L.corr===k?' checked':''}><i></i></label>`).join('')}
- ${tg('retype','Повторять ввод правильного ответа','Если ошиблась, нужно вписать правильный ответ, прежде чем идти дальше')}</div>
- ${ST&&ST.set?`<button class="btn ghost wide" id="rst" style="color:#d61f26">Сбросить прогресс набора</button>`:''}`);
- el.querySelectorAll('[data-k]').forEach(i=>i.onchange=()=>{L[i.dataset.k]=i.checked;if(!L.mc&&!L.listen&&!L.let&&!L.wr&&!L.dic){L.wr=true;i.checked=i.dataset.k==='wr'}saveSet()});
- el.querySelectorAll('[name=corr]').forEach(i=>i.onchange=()=>{L.corr=i.value;saveSet()});
- const r=el.querySelector('#rst');if(r)r.onclick=async()=>{if(!confirm('Сбросить прогресс заучивания этого набора?'))return;ST.set.cards.forEach(c=>{c.lv=0;c.seen=0});await saveSetObj(ST.set,false);closeSheet();toast('Прогресс сброшен')};
- SHEET.bg.onclick=()=>{closeSheet();onClose&&onClose()}}
+function learnSettings(onClose,set=ST?.set||null){const L=prefs(set),lang=set?.lang||SET.lang;const tg=(k,t,sub)=>`<label class="tg"><span>${t}${sub?`<small>${sub}</small>`:''}</span><input type="checkbox" data-k="${k}"${L[k]?' checked':''}><i></i></label>`;
+ const el=sheet(`<h3>${onClose?'Начать заучивание':'Настройки заучивания'}</h3><div class="hint">${set?esc(set.name)+' · настройки только этого урока':LANGS[lang].name+' · настройки новых уроков'}</div>
+ <div class="card2"><b>Язык ответа</b>${tg('ansT',LANGS[lang].name)}${tg('ansD','Русский')}<div class="hint">Если включены оба, направления чередуются.</div></div>
+ <div class="card2"><b>Типы вопросов</b>${tg('fc','Карточки','Вспомни перевод и открой ответ')}${tg('mc','С выбором ответов')}${tg('let','Сборка по буквам','Слова и фразы, слово за словом')}${tg('wr','Письменные','Ввод с клавиатуры')}</div>
+ <div class="card2"><b>Дополнительно</b>${tg('shuffle','Перемешать карточки')}${tg('tts','Автоматическая озвучка')}${tg('listen','Аудирование','Ответ на русском, независимо от направления выше')}${tg('dic','Диктант','Письменный ответ на '+LANGS[lang].name)}</div>
+ <div class="card2"><b>Проверка письменных ответов</b><div class="chips">${[['soft','Мягкая'],['mod','Умеренная'],['strict','Строгая']].map(([k,t])=>`<label class="rd"><span>${t}</span><input type="radio" name="corr" value="${k}"${L.corr===k?' checked':''}><i></i></label>`).join('')}</div>${tg('retype','Переписать правильный ответ после ошибки')}</div>
+ <button class="btn wide" id="saveprefs">${onClose?'Начать':'Сохранить'}</button><button class="lk" id="cancelprefs">Закрыть</button>`);
+ el.querySelectorAll('[data-k]').forEach(input=>input.onchange=()=>{const k=input.dataset.k;L[k]=input.checked;const keys=['ansT','ansD'].includes(k)?['ansT','ansD']:['fc','mc','let','wr','listen','dic'].includes(k)?['fc','mc','let','wr','listen','dic']:null;if(keys&&!keys.some(x=>L[x])){L[k]=true;input.checked=true;toast('Оставь хотя бы один вариант')}});
+ el.querySelectorAll('[name=corr]').forEach(i=>i.onchange=()=>L.corr=i.value);
+ el.querySelector('#saveprefs').onclick=()=>{storePrefs(set,L);closeSheet();onClose&&onClose()};
+ const cancel=()=>{closeSheet();if(onClose)closeStudy()};el.querySelector('#cancelprefs').onclick=cancel;SHEET.bg.onclick=cancel;
+}
+function cardSettings(set,onStart){const C=Object.assign({front:'t',shuffle:false,star:false},set.cardPrefs||{});
+ const el=sheet(`<h3>Карточки</h3><div class="hint">${esc(set.name)} · настройки этого урока</div><div class="card2"><b>Лицевая сторона</b>${[['t',LANGS[set.lang].name],['d','Русский']].map(([k,t])=>`<label class="rd"><span>${t}</span><input type="radio" name="front" value="${k}"${C.front===k?' checked':''}><i></i></label>`).join('')}</div><div class="card2">${[['shuffle','Перемешать'],['star','Только избранные ★']].map(([k,t])=>`<label class="tg"><span>${t}</span><input type="checkbox" data-c="${k}"${C[k]?' checked':''}><i></i></label>`).join('')}</div><div class="hint">← Ещё учу · Помню наизусть →</div><button class="btn wide" id="cardstart">Открыть карточки</button><button class="lk" id="cardcancel">Закрыть</button>`);
+ el.querySelectorAll('[name=front]').forEach(i=>i.onchange=()=>C.front=i.value);el.querySelectorAll('[data-c]').forEach(i=>i.onchange=()=>C[i.dataset.c]=i.checked);
+ el.querySelector('#cardstart').onclick=()=>{set.cardPrefs=C;saveSetObj(set,false);closeSheet();onStart()};const cancel=()=>{closeSheet();if(!document.querySelector('#fc'))closeStudy()};el.querySelector('#cardcancel').onclick=cancel;SHEET.bg.onclick=cancel;
+}
+
 
 /* --- flashcards (Карточки) --- */
-async function runCards(){let cards=ST.set.cards.filter(c=>(!ST.star||c.star));if(ST.fcShuffle)cards=shuffle(cards);let i=0,know=[],learn=[];const front=ST.front||'t';
- const draw=async()=>{if(!ST||ST.closed)return;if(i>=cards.length)return end();const c=cards[i];
-  APP.innerHTML=`<div class="st"><div class="sttop"><button class="ib sm" id="stx">${ICON.close}</button><div class="bar"><i style="width:${i/cards.length*100}%"></i></div><span class="stc">${i+1}/${cards.length}</span></div>
-  <div class="fcwrap"><div class="fcnt"><span class="nl">${learn.length}</span><span class="nk">${know.length}</span></div><div class="fc" id="fc"><div class="fcin"><div class="face f1">${await imgTag(c,'fimg')}<div class="ft">${esc(front==='t'?c.t:c.d)}</div></div><div class="face f2"><div class="ft">${esc(front==='t'?c.d:c.t)}</div></div></div>
-  <button class="aud sm fca" id="aud">${ICON.sound}</button><button class="star fcs${c.star?' on':''}" id="st">★</button></div><div class="hint">Нажми на карточку, чтобы перевернуть. Свайп вправо — знаю, влево — ещё учу</div>
-  <div class="row c fcb"><button class="btn orange" id="no">✕ Ещё учу</button><button class="btn green" id="yes">✓ Знаю</button></div><div class="row c"><button class="lk" id="opt">Параметры</button>${i>0?'<button class="lk" id="undo">↶ Назад</button>':''}</div></div></div>`;
-  $('#stx').onclick=closeStudy;const fc=$('#fc');fc.onclick=e=>{if(e.target.closest('button'))return;fc.classList.toggle('flip')};
-  $('#aud').onclick=()=>speak(c.t,SET.lang);$('#st').onclick=()=>{c.star=c.star?0:1;$('#st').classList.toggle('on');persist(c)};
-  if(SET.learn.tts&&front==='t')speak(c.t,SET.lang);
-  const mark=k=>{(k?know:learn).push(c);fc.classList.add(k?'goR':'goL');if(k){if(c.box>0&&c.due<=Date.now())srsGood(c)}else if(c.box>0)srsBad(c);persist(c);setTimeout(()=>{i++;draw()},220)};
-  $('#yes').onclick=()=>mark(1);$('#no').onclick=()=>mark(0);
-  $('#opt').onclick=()=>menuSheet('Карточки',[{ic:'🔁',t:'Сначала показывать: '+(front==='t'?LANGS[SET.lang].name:'Русский'),fn:()=>{ST.front=front==='t'?'d':'t';i=0;know=[];learn=[];runCards()}},{ic:'🔀',t:ST.fcShuffle?'Не перемешивать':'Перемешать',fn:()=>{ST.fcShuffle=!ST.fcShuffle;runCards()}},{ic:'⭐',t:ST.star?'Все карточки':'Только избранные ★',fn:()=>{ST.star=!ST.star;runCards()}}]);
-  const u=$('#undo');if(u)u.onclick=()=>{i--;know=know.filter(x=>x!==cards[i]);learn=learn.filter(x=>x!==cards[i]);draw()};
-  let sx=null;fc.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});fc.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>70)mark(dx>0?1:0)},{passive:true})};
- const end=()=>{APP.innerHTML=`<div class="st"><div class="sttop"><button class="ib sm" id="stx">${ICON.close}</button><div class="bar"><i style="width:100%"></i></div><span class="stc"></span></div><div class="qbox"><div class="qtop"><div class="big-emoji">${learn.length?'💪':'🎉'}</div><div class="qterm">Знаешь ${know.length} из ${cards.length}</div><div class="hint">${learn.length?'Ещё учишь: '+learn.length:'Отличный результат!'}</div></div><div class="qbot">${learn.length?`<button class="btn wide" id="again">Повторить незнакомые (${learn.length})</button>`:''}<button class="btn ghost wide" id="restart">Начать заново</button></div></div></div>`;
-  $('#stx').onclick=closeStudy;const a=$('#again');if(a)a.onclick=()=>{cards=learn.slice();i=0;know=[];learn=[];draw()};$('#restart').onclick=()=>{i=0;know=[];learn=[];draw()}};
- draw()}
+async function runCards(){const session=ST,C=Object.assign({front:'t',shuffle:false,star:false},ST.set.cardPrefs||{});let cards=ST.set.cards.filter(c=>!C.star||c.star);if(C.shuffle)cards=shuffle(cards);let i=0,history=[];const active=()=>ST===session&&!session.closed;
+ if(!cards.length){toast('Нет карточек с такими параметрами');closeStudy();return}
+ const draw=async()=>{if(!active())return;if(i>=cards.length)return end();const c=cards[i];let locked=false;const image=await imgTag(c,'fimg');if(!active())return;
+ APP.innerHTML=`<div class="st"><div class="sttop"><button class="ib sm" id="stx">${ICON.close}</button><div class="bar"><i style="width:${i/cards.length*100}%"></i></div><span class="stc">${i+1}/${cards.length}</span><button class="ib sm" id="opt" aria-label="Настройки карточек">${ICON.gear}</button></div><div class="fcwrap"><div class="fcnt"><span class="nl">${history.filter(x=>!x.known).length} · Ещё учу</span><span class="nk">${history.filter(x=>x.known).length} · Помню</span></div><div class="fc" id="fc"><div class="fcin"><div class="face f1">${image}<div class="ft">${esc(sideTxt(c,C.front))}</div></div><div class="face f2"><div class="ft">${esc(sideTxt(c,C.front==='t'?'d':'t'))}</div></div></div><button class="aud sm fca" id="aud" aria-label="Прослушать">${ICON.sound}</button></div><div class="hint">Нажми, чтобы перевернуть<br>← Ещё учу · Помню наизусть →</div><div class="row c fcb"><button class="btn orange" id="no">Ещё учу</button><button class="btn green" id="yes">Помню</button></div><button class="lk" id="undo" ${history.length?'':'disabled'}>↶ Отменить последний ответ</button></div></div>`;
+ $('#stx').onclick=closeStudy;$('#aud').onclick=()=>speak(c.t,session.set.lang);$('#opt').onclick=()=>{if(!locked)cardSettings(session.set,()=>runCards())};const fc=$('#fc');let swiped=false;
+ fc.onclick=e=>{if(locked||swiped||e.target.closest('button'))return;fc.classList.toggle('flip');if(prefs().tts&&((C.front==='t')!==fc.classList.contains('flip')))speak(c.t,session.set.lang)};
+ const mark=known=>{if(locked||!active())return;locked=true;history.push({c,known,before:{lv:c.lv,seen:c.seen,box:c.box,due:c.due}});recordCard(c,known);fc.classList.add(known?'goR':'goL');setTimeout(()=>{if(active()){i++;draw()}},230)};
+ $('#yes').onclick=()=>mark(true);$('#no').onclick=()=>mark(false);$('#undo').onclick=()=>{if(locked||!history.length)return;const h=history.pop();Object.assign(h.c,h.before);persist(h.c);i--;draw()};
+ let start=null;fc.addEventListener('touchstart',e=>{if(e.target.closest('button')||e.touches.length!==1)return;start={x:e.touches[0].clientX,y:e.touches[0].clientY};swiped=false},{passive:true});fc.addEventListener('touchend',e=>{if(!start)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;start=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.3){swiped=true;mark(dx>0)}},{passive:true});
+ if(prefs().tts&&C.front==='t')speak(c.t,session.set.lang);
+ };
+ const end=()=>{const unknown=history.filter(h=>!h.known).map(h=>h.c);shell(100,'');$('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">${unknown.length?'💪':'🎉'}</div><div class="qterm">Помнишь ${cards.length-unknown.length} из ${cards.length}</div><div class="hint">Прогресс сохранён</div></div><div class="qbot">${unknown.length?'<button class="btn wide" id="again">Повторить незнакомые</button>':''}<button class="btn ghost wide" id="restart">Все ещё раз</button><button class="btn ghost wide" id="ex">Готово</button></div>`;$('#ex').onclick=closeStudy;$('#restart').onclick=()=>{i=0;history=[];draw()};const again=$('#again');if(again)again.onclick=()=>{cards=unknown;i=0;history=[];draw()}};
+ draw()
+}
+
 
 /* --- spelling & dictation & review: simple sequences --- */
 async function runSeq(kind){let list;
  if(kind==='review'){list=shuffle(dueCards(SET.lang).map(x=>x.c)).slice(0,30);if(!list.length){toast('Сейчас нечего повторять');return closeStudy()}}
- else list=(SET.learn.shuffle?shuffle:x=>x)(ST.set.cards.filter(c=>(!ST.star||c.star)&&c.t&&c.d));
+ else list=(prefs().shuffle?shuffle:x=>x)(ST.set.cards.filter(c=>(!ST.star||c.star)&&c.t&&c.d));
  if(!list.length){toast('Нет карточек');return closeStudy()}
  shell(0,`0/${list.length}`);let right=0;const wrong=[];const again=[];
  for(let i=0;i<list.length;i++){if(!ST||ST.closed)return;const c=list[i];setBar(i/list.length*100,`${i+1}/${list.length}`);let r;
-  if(kind==='spell'){r=await qLetters(c);if(!ST||ST.closed)return;const r2=await qWrite(c,'t',false);if(!ST||ST.closed)return;r={ok:r.ok&&r2.ok}}
+  if(kind==='spell'){r=await qLetters(c,'t')}
   else if(kind==='dict')r=await qWrite(c,'t',true);
   else{r=await askType(c,pick([{k:'let'},{k:'wr',side:'t'},{k:'dic'},{k:'wr',side:'t'}]))}
   if(!ST||ST.closed)return;
   if(r.ok){right++;if(kind==='review'||c.box>0)srsGood(c);else markDay()}else{wrong.push(c);if(kind==='review'||c.box>0)srsBad(c);else{c.bad=(c.bad||0)+1;markDay()}}
   persist(c)}
- setBar(100,'');$('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">${wrong.length?'📝':'🎉'}</div><div class="qterm">${right} из ${list.length}</div><div class="hint">${wrong.length?'Ошибки:':'Без ошибок!'}</div><div class="rlist">${wrong.map(c=>`<div class="rl"><span class="dot lv0"></span><b>${esc(c.t)}</b><span>${esc(c.d)}</span></div>`).join('')}</div></div><div class="qbot">${wrong.length&&kind!=='review'?`<button class="btn wide" id="ag">Ещё раз только ошибки</button>`:''}<button class="btn ghost wide" id="ex">Готово</button></div>`;
+ setBar(100,'');$('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">${wrong.length?'📝':'🎉'}</div><div class="qterm">${right} из ${list.length}</div><div class="hint">${wrong.length?'Ошибки:':'Без ошибок!'}</div><div class="rlist">${wrong.map(c=>`<div class="rl"><span class="dot lv0"></span><b>${esc(c.t)}</b>${voiceButton(c.t)}<span>${esc(c.d)}</span></div>`).join('')}</div></div><div class="qbot">${wrong.length&&kind!=='review'?`<button class="btn wide" id="ag">Ещё раз только ошибки</button>`:''}<button class="btn ghost wide" id="ex">Готово</button></div>`;
  $('#ex').onclick=closeStudy;const a=$('#ag');if(a)a.onclick=()=>{ST.only=wrong;runSeqList(kind,wrong)}}
 async function runSeqList(kind,list){const keep=ST.set.cards;ST.set={...ST.set,cards:list};await runSeq(kind);if(ST&&ST.set)ST.set.cards=keep}
 
@@ -424,15 +448,15 @@ function testSetup(){const n=ST.set.cards.length;const st={cnt:Math.min(20,n),mc
 async function runTest(o){const cards=shuffle(ST.set.cards.filter(c=>c.t&&c.d)).slice(0,o.cnt);const types=[o.mc&&'mc',o.wr&&'wr',o.tf&&'tf'].filter(Boolean);const res=[];
  shell(0,'');for(let i=0;i<cards.length;i++){if(!ST||ST.closed)return;const c=cards[i];setBar(i/cards.length*100,`${i+1}/${cards.length}`);const ty=types[i%types.length];const side=o.side==='mix'?(Math.random()<.5?'t':'d'):o.side;const ans=side==='t'?c.t:c.d,prom=side==='t'?c.d:c.t;const q=$('#qbox');
   const r=await new Promise(done=>{
-   if(ty==='mc'){const opts=shuffle([ans,...distract(c,side,3)]);q.innerHTML=`<div class="qtop"><div class="lbl">Вопрос ${i+1}</div><div class="qterm">${esc(prom)}</div></div><div class="qbot"><div class="opts">${opts.map((x,k)=>`<button class="opt" data-k="${k}">${esc(x)}</button>`).join('')}</div><button class="lk" id="sk">Пропустить</button></div>`;
+   if(ty==='mc'){const opts=shuffle([ans,...distract(c,side,3)]);q.innerHTML=`<div class="qtop"><div class="lbl">Вопрос ${i+1}</div><div class="qterm">${esc(prom)}</div>${side==='d'?voiceButton(prom):''}</div><div class="qbot"><div class="opts">${opts.map((x,k)=>`<div class="optrow"><button class="opt" data-k="${k}">${esc(x)}</button>${side==='t'?voiceButton(x):''}</div>`).join('')}</div><button class="lk" id="sk">Пропустить</button></div>`;
     q.querySelectorAll('.opt').forEach(b=>b.onclick=()=>done({ok:opts[+b.dataset.k]===ans,given:opts[+b.dataset.k]}));$('#sk').onclick=()=>done({ok:false,given:''})}
-   else if(ty==='tf'){const truth=Math.random()<.5;const shown=truth?ans:(distract(c,side,1)[0]||ans);const isT=shown===ans;q.innerHTML=`<div class="qtop"><div class="lbl">Верно или нет?</div><div class="qterm">${esc(prom)}</div><div class="hint">=</div><div class="qterm sm">${esc(shown)}</div></div><div class="qbot"><div class="row c"><button class="btn green" data-v="1">Верно</button><button class="btn orange" data-v="0">Неверно</button></div></div>`;
+   else if(ty==='tf'){const truth=Math.random()<.5;const shown=truth?ans:(distract(c,side,1)[0]||ans);const isT=shown===ans;q.innerHTML=`<div class="qtop"><div class="lbl">Верно или нет?</div><div class="qterm">${esc(prom)}</div>${side==='d'?voiceButton(prom):''}<div class="hint">=</div><div class="qterm sm">${esc(shown)}</div>${side==='t'?voiceButton(shown):''}</div><div class="qbot"><div class="row c"><button class="btn green" data-v="1">Верно</button><button class="btn orange" data-v="0">Неверно</button></div></div>`;
     q.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>done({ok:(b.dataset.v==='1')===isT,given:(b.dataset.v==='1'?'Верно':'Неверно')+': «'+shown+'»'}))}
-   else{q.innerHTML=`<div class="qtop"><div class="lbl">Вопрос ${i+1}</div><div class="qterm">${esc(prom)}</div><div class="hint">Напиши ${side==='t'?'на '+LANGS[SET.lang].ru+'ом':'по-русски'}</div></div><div class="qbot"><div class="wrow"><input class="inp" id="ans" placeholder="Введи ответ" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="go" id="go">${ICON.up}</button></div></div>`;
+   else{q.innerHTML=`<div class="qtop"><div class="lbl">Вопрос ${i+1}</div><div class="qterm">${esc(prom)}</div>${side==='d'?voiceButton(prom):''}<div class="hint">Напиши ${side==='t'?'на '+LANGS[SET.lang].ru+'ом':'по-русски'}</div></div><div class="qbot"><div class="wrow"><input class="inp" id="ans" placeholder="Введи ответ" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="go" id="go">${ICON.up}</button></div></div>`;
     const inp=$('#ans');setTimeout(()=>inp.focus(),60);const f=()=>done({ok:check(inp.value,ans).ok,given:inp.value});$('#go').onclick=f;inp.onkeydown=e=>{if(e.key==='Enter')f()}}});
   if(!ST||ST.closed)return;res.push({c,ans,prom,...r});if(r.ok){if(c.box>0)srsGood(c);else markDay()}else if(c.box>0)srsBad(c);persist(c)}
  const ok=res.filter(r=>r.ok).length,pct=Math.round(ok/res.length*100);setBar(100,'');
- $('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">${pct>=80?'🏆':pct>=50?'👍':'📚'}</div><div class="qterm">${pct}%</div><div class="hint">Правильно ${ok} из ${res.length}</div><div class="rlist">${res.filter(r=>!r.ok).map(r=>`<div class="rl"><span class="dot lv0"></span><b>${esc(r.prom)}</b><span>✓ ${esc(r.ans)}${r.given?`<br><s>${esc(r.given)}</s>`:''}</span></div>`).join('')}</div></div><div class="qbot"><button class="btn wide" id="ag">Новый тест</button><button class="btn ghost wide" id="ex">Готово</button></div>`;
+ $('#qbox').innerHTML=`<div class="qtop"><div class="big-emoji">${pct>=80?'🏆':pct>=50?'👍':'📚'}</div><div class="qterm">${pct}%</div><div class="hint">Правильно ${ok} из ${res.length}</div><div class="rlist">${res.filter(r=>!r.ok).map(r=>`<div class="rl"><span class="dot lv0"></span><b>${esc(r.prom)}</b>${voiceButton(r.c.t)}<span>✓ ${esc(r.ans)}${r.given?`<br><s>${esc(r.given)}</s>`:''}</span></div>`).join('')}</div></div><div class="qbot"><button class="btn wide" id="ag">Новый тест</button><button class="btn ghost wide" id="ex">Готово</button></div>`;
  $('#ex').onclick=closeStudy;$('#ag').onclick=()=>runTest(o)}
 
 /* --- match (Подбор) --- */
@@ -448,8 +472,9 @@ async function runMatch(){const pool=shuffle(ST.set.cards.filter(c=>c.t&&c.d)).s
     $('#ag').onclick=runMatch;$('#ex').onclick=closeStudy}}
   else{pen+=1000;b.classList.add('bad');sel.classList.add('bad');const a=sel;sel=null;setTimeout(()=>{a.classList.remove('bad','sel');b.classList.remove('bad')},450)}})}
 
-function startStudy(kind,set){ST={kind,set,back:set?'/s/'+set.id:'/',star:false};
- if(kind==='learn')runLearn();else if(kind==='cards')runCards();else if(kind==='test'){shell(0,'');testSetup()}else if(kind==='match')runMatch();else runSeq(kind)}
+function startStudy(kind,set){if(ST)ST.closed=true;ST={kind,set,back:set?'/s/'+set.id:'/',star:false};
+ if(kind==='learn'){learnSettings(()=>runLearn(),set)}else if(kind==='cards'){cardSettings(set,()=>runCards())}else if(kind==='test'){shell(0,'');testSetup()}else if(kind==='match')runMatch();else runSeq(kind)}
+
 
 /* ===== icons ===== */
 const sv=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
@@ -484,15 +509,19 @@ function after(r){if(r.k==='s')afterSet(SETS.get(r.id));if(r.k==='e')afterEdit()
 
 /* ===== home ===== */
 let QH='';
+let HOME_LEVEL='A0';
+const courseLevel=s=>/^A[01] · Урок \d+$/.test(s.name)?s.name.slice(0,2):'own';
 function viewHome(){const L=SET.lang,sets=setsOf(L);const words=sets.reduce((a,s)=>a+s.cards.length,0),mast=sets.reduce((a,s)=>a+s.cards.filter(mastered).length,0),due=dueCards(L).length,stk=streak();
- const q=nq2(QH);const list=q?sets.filter(s=>nq2(s.name).includes(q)||s.cards.some(c=>nq2(c.t).includes(q)||nq2(c.d).includes(q))):sets;
+ const visible=L==='en'?sets.filter(s=>courseLevel(s)===HOME_LEVEL):sets;
+ const q=nq2(QH);const list=q?sets.filter(s=>nq2(s.name).includes(q)||s.cards.some(c=>nq2(c.t).includes(q)||nq2(c.d).includes(q))):visible;
  return `<div class="wrap home"><div class="topbar"><div class="brand"><img src="logo.jpg" alt=""><b>English / French</b></div><button class="ib" data-act="settings">${ICON.gear}</button></div>
  <div class="lsw">${Object.keys(LANGS).map(k=>`<button class="${k===L?'on':''}" data-act="lang" data-v="${k}">${LANGS[k].flag} ${LANGS[k].name}</button>`).join('')}</div>
- <div class="stats"><div><b>🔥 ${stk}</b><span>${plural(stk,'день','дня','дней')} подряд</span></div><div><b>${mast}</b><span>выучено из ${words}</span></div><div><b>${SET.days[dayKey()]||0}</b><span>ответов сегодня</span></div></div>
+ <div class="stats"><div><b>🔥 ${stk}</b><span>${plural(stk,'день','дня','дней')} подряд</span></div><div><b>${mast}</b><span>выучено из ${words}</span></div><div><b>${activity()[dayKey()]||0}</b><span>ответов сегодня</span></div></div>
  <button class="review${due?'':' off'}" data-act="review"><span class="ric">🔁</span><span><b>Повторение</b><small>${due?'Пора повторить: '+due+' '+plural(due,'слово','слова','слов'):'Сейчас нечего повторять. Слова появятся здесь после заучивания'}</small></span>${due?`<i class="badge">${due}</i>`:''}</button>
+ ${L==='en'?`<div class="lbl">Английский по плейлистам</div><div class="chips" aria-label="Уровень английского">${[['A0','A0 · С нуля'],['A1','A1 · Начальный'],['own','Мои наборы']].map(([k,t])=>`<button class="chip${HOME_LEVEL===k?' on':''}" data-act="level" data-v="${k}">${t}</button>`).join('')}</div>${HOME_LEVEL==='A0'?'<a class="act" href="a0-materials.pdf" target="_blank" rel="noopener"><span class="ic">📖</span><span>Конспект A0<small>Открыть исходный PDF · 50 уроков</small></span></a>':''}`:''}
  <div class="sbar"><span>${ICON.search}</span><input id="hq" placeholder="Поиск по наборам и словам" value="${esc(QH)}" autocomplete="off"></div>
  ${q?searchHits(q):''}
- <div class="lbl">Наборы · ${sets.length}</div>
+ <div class="lbl">Наборы · ${list.length}</div>
  ${list.length?list.map(s=>{const p=setProgress(s);return `<button class="setc" data-go="/s/${s.id}"><span class="sn">${s.pin?'📌 ':''}${esc(s.name)}</span><span class="sm2">${s.cards.length} ${plural(s.cards.length,'термин','термина','терминов')}${p?` · выучено ${p}%`:''}</span><span class="pbar"><i style="width:${p}%"></i></span></button>`}).join(''):`<div class="empty"><div class="big-emoji">${LANGS[L].flag}</div><b>Пока нет наборов</b><span>Нажми «+», чтобы создать набор, вставить список слов или распознать скриншот</span></div>`}
  <button class="fab" data-act="fab">${ICON.plus}</button></div>`}
 const nq2=s=>String(s||'').toLowerCase().replace(/ё/g,'е');
@@ -605,21 +634,29 @@ function viewSettings(){const vs=L=>VOICES.filter(v=>v.lang&&v.lang.toLowerCase(
  <div class="hint" style="text-align:left">Голоса берутся из iPhone. Лучшие можно скачать: Настройки iPhone → Универсальный доступ → Устный контент → Голоса.</div>
  <div class="lbl">Заучивание</div><button class="act" data-act="lsett"><span class="ic">⚙️</span><span>Параметры заучивания<small>Типы вопросов, строгость проверки, язык ответа</small></span></button>
  <div class="lbl">Данные</div><button class="act" data-go="/bk"><span class="ic">💾</span><span>Резервная копия<small>${SET.lastBackup?'Последняя: '+new Date(SET.lastBackup).toLocaleDateString('ru-RU'):'Ещё не делала'}</small></span></button>
+ <button class="act" data-act="a0"><span class="ic">📚</span><span>Уроки A0 из конспектов<small>Добавить заново 50 уроков (если удалила)</small></span></button>
  <button class="act" data-act="a1"><span class="ic">📚</span><span>Уроки A1 из конспектов<small>Добавить заново 50 уроков (если удалила)</small></span></button>
- <div class="note">Все слова и прогресс хранятся только на этом телефоне. Делай резервную копию, чтобы не потерять.</div></div>`}
+ <div class="hint">Версия 3 · Карточки и заучивание</div><div class="note">Все слова и прогресс хранятся только на этом телефоне. Делай резервную копию, чтобы не потерять.</div></div>`}
 function viewBackup(){return `<div class="wrap set"><div class="topbar"><button class="ib" data-go="/st">${ICON.back}</button><b>Резервная копия</b><span style="width:46px"></span></div>
  <div class="note">Один файл со всеми наборами, прогрессом и фото. Сохрани его в «Файлы» или iCloud Drive.</div><div id="bkbox"><button class="btn wide" data-act="mkbk">Подготовить копию</button></div>
  <div class="lbl">Восстановление</div><button class="btn ghost wide" data-act="rsbk">Восстановить из файла</button><div class="hint" style="text-align:left">Восстановление заменяет всё, что сейчас в приложении.</div></div>`}
 let BK=null;
-async function makeBackup(){const zip=new JSZip();const sets=[...SETS.values()];zip.file('data.json',JSON.stringify({app:'efr',v:1,exported:Date.now(),sets,settings:{learn:SET.learn,voice:SET.voice,rate:SET.rate,days:SET.days,lang:SET.lang,imported:SET.imported}}));
+async function makeBackup(){const zip=new JSZip();const sets=[...SETS.values()];zip.file('data.json',JSON.stringify({app:'efr',v:1,exported:Date.now(),sets,settings:{learn:SET.learn,learnByLang:SET.learnByLang,voice:SET.voice,rate:SET.rate,days:SET.days,daysByLang:SET.daysByLang,lang:SET.lang,imported:SET.imported,importedA0:SET.importedA0}}));
  for(const s of sets)for(const c of s.cards)if(c.img){const r=await dbGet('blobs',c.img);if(r)zip.file('img/'+c.img,r.blob,{binary:true})}return zip.generateAsync({type:'blob',compression:'STORE'})}
 async function restoreBackup(f){const zip=await JSZip.loadAsync(f);const d=JSON.parse(await zip.file('data.json').async('string'));if(d.app!=='efr')throw new Error('bad');
  await dbClear('sets');await dbClear('blobs');SETS.clear();for(const s of d.sets){SETS.set(s.id,s)}await dbPutMany('sets',d.sets);
  for(const n of Object.keys(zip.files)){if(!n.startsWith('img/')||zip.files[n].dir)continue;const b=await zip.files[n].async('blob');await dbPut('blobs',{id:n.slice(4),blob:new Blob([b],{type:'image/jpeg'})})}
- Object.assign(SET,d.settings||{});saveSet()}
+ Object.assign(SET,d.settings||{});SET.importedA0=d.settings?.importedA0||0;saveSet();if(!SET.importedA0)await importA0()}
 async function importA1(force){try{const r=await fetch('a1.json');const arr=await r.json();const exist=new Set(setsOf('en').map(s=>s.name));const out=[];
  arr.forEach((x,i)=>{if(!force&&exist.has(x.name))return;if(force&&exist.has(x.name))return;const s={id:uid(),lang:'en',name:x.name,cards:x.cards.map(c=>mkCard({t:c.en,d:c.ru})),order:1000+i,created:Date.now(),updated:Date.now()};SETS.set(s.id,s);out.push(s)});
  await dbPutMany('sets',out);SET.imported=1;saveSet();return out.length}catch(e){console.error(e);return 0}}
+
+async function importA0(){try{
+ const r=await fetch('a0.json');if(!r.ok)throw new Error('A0 unavailable');const arr=await r.json();
+ if(arr.length!==50||arr.some(x=>!x.cards?.length))throw new Error('Invalid A0');
+ const existing=new Set(setsOf('en').map(s=>s.name));const out=arr.filter(x=>!existing.has(x.name)).map(x=>({id:uid(),lang:'en',name:x.name,cards:x.cards.map(c=>mkCard({t:c.en,d:c.ru})),order:500+Number(x.name.match(/\d+$/)[0]),created:Date.now(),updated:Date.now()}));
+ await dbPutMany('sets',out);out.forEach(s=>SETS.set(s.id,s));SET.importedA0=1;saveSet();return out.length;
+ }catch(e){console.error(e);return null}}
 
 /* ===== clicks ===== */
 document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]');const a=e.target.closest('[data-act]');
@@ -628,12 +665,13 @@ document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]'
  switch(act){
   case'settings':go('/st');break;
   case'lang':SET.lang=a.dataset.v;saveSet();QH='';render();break;
+  case'level':HOME_LEVEL=a.dataset.v;QH='';render();break;
   case'fab':fabMenu();break;
   case'review':if(!dueCards(SET.lang).length){toast('Сейчас нечего повторять');break}ST={kind:'review',back:'/'};runSeq('review');break;
-  case'say':e.stopPropagation();speak(a.dataset.t,(SETS.get(parseHash().id)||{}).lang||SET.lang);break;
+  case'say':e.stopPropagation();speak(a.dataset.t,a.dataset.l||(SETS.get(parseHash().id)||{}).lang||SET.lang);break;
   case'setmenu':if(s)setMenu(s);break;
   case'study':if(s){if(!s.cards.length){toast('Сначала добавь карточки');break}SET.lang=s.lang;startStudy(a.dataset.k,s)}break;
-  case'lsett':e.stopPropagation();if(s)ST=null;learnSettings();break;
+  case'lsett':e.stopPropagation();learnSettings(null,s);break;
   case'cedit':if(s)cardSheet(s,+a.dataset.i);break;
   case'cstar':if(s){const c=s.cards[+a.dataset.i];c.star=c.star?0:1;a.classList.toggle('on');saveSetObj(s,false)}break;
   case'cadd':if(s)cardSheet(s,null);break;
@@ -647,6 +685,7 @@ document.addEventListener('click',async e=>{const g=e.target.closest('[data-go]'
   case'edocr':ocrFlow(null,p=>{EDIT.rows=EDIT.rows.filter(r=>r.t||r.d).concat(p.map(x=>({t:x.t,d:x.d})));redrawRows();toast('Добавлено строк: '+p.length)});break;
   case'vtest':speak(a.dataset.l==='fr'?'Bonjour, comment ça va ?':'Hello! How are you today?',a.dataset.l);break;
   case'rate':SET.rate=+a.dataset.v;saveSet();render();break;
+  case'a0':{const n=await importA0();toast(n===null?'Не удалось загрузить A0. Проверь интернет':n?'Добавлено уроков: '+n:'Все уроки уже на месте');break}
   case'a1':{const n=await importA1(true);toast(n?'Добавлено уроков: '+n:'Все уроки уже на месте');break}
   case'mkbk':{const box=$('#bkbox');box.innerHTML='<div class="hint">Собираю файл…</div>';try{const b=await makeBackup();const d=new Date();BK=new File([b],`slova-kopiya-${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}.zip`,{type:'application/zip'});box.innerHTML=`<div class="hint">Готово: ${(b.size/1048576).toFixed(1)} МБ</div><button class="btn wide" data-act="svbk">Сохранить файл</button>`}catch(err){box.innerHTML='<div class="hint">Не получилось</div>'}break}
   case'svbk':{let ok=false;if(navigator.canShare&&navigator.canShare({files:[BK]})){try{await navigator.share({files:[BK]});ok=true}catch(_){}}else{const u=URL.createObjectURL(BK);const l=document.createElement('a');l.href=u;l.download=BK.name;l.click();setTimeout(()=>URL.revokeObjectURL(u),4000);ok=true}if(ok){SET.lastBackup=Date.now();saveSet();toast('Копия сохранена')}break}
@@ -657,6 +696,7 @@ document.addEventListener('change',e=>{const v=e.target.closest('[data-voice]');
 /* ===== boot ===== */
 async function boot(){await openDB();const all=await dbAll('sets');all.forEach(s=>SETS.set(s.id,s));
  if(!SET.imported&&!all.length){await importA1(false)}
+ if(!SET.importedA0){const n=await importA0();if(n===null)toast('A0 пока не загрузился. Добавь уроки в настройках, когда появится интернет')}
  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
  render();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})}
 boot();
