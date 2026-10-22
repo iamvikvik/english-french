@@ -616,7 +616,7 @@ async function makeBackup(){const zip=new JSZip();const sets=[...SETS.values()];
 async function restoreBackup(f){const zip=await JSZip.loadAsync(f);const d=JSON.parse(await zip.file('data.json').async('string'));if(d.app!=='efr')throw new Error('bad');
  await dbClear('sets');await dbClear('blobs');SETS.clear();for(const s of d.sets){SETS.set(s.id,s)}await dbPutMany('sets',d.sets);
  for(const n of Object.keys(zip.files)){if(!n.startsWith('img/')||zip.files[n].dir)continue;const b=await zip.files[n].async('blob');await dbPut('blobs',{id:n.slice(4),blob:new Blob([b],{type:'image/jpeg'})})}
- Object.assign(SET,d.settings||{});saveSet()}
+ Object.assign(SET,d.settings||{});SET.tinder=0;await addTinder();saveSet()}
 async function importA1(force){try{const r=await fetch('a1.json');const arr=await r.json();const exist=new Set(setsOf('en').map(s=>s.name));const out=[];
  arr.forEach((x,i)=>{if(!force&&exist.has(x.name))return;if(force&&exist.has(x.name))return;const s={id:uid(),lang:'en',name:x.name,cards:x.cards.map(c=>mkCard({t:c.en,d:c.ru})),order:1000+i,created:Date.now(),updated:Date.now()};SETS.set(s.id,s);out.push(s)});
  await dbPutMany('sets',out);SET.imported=1;saveSet();return out.length}catch(e){console.error(e);return 0}}
