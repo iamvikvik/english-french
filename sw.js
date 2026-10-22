@@ -1,5 +1,5 @@
-const CACHE='efr-v4-progress-fr';
-const ASSETS=['./','index.html','jszip.min.js','logo.jpg','icon-192.png','icon-512.png','apple-touch-icon.png','manifest.webmanifest','a1.json','fr-lessons-1-2-3.json','fr-lessons-1-2-3.pdf','a0.json','a0-materials.pdf'];
+const CACHE='efr-v3';
+const ASSETS=['./','index.html','jszip.min.js','logo.jpg','icon-192.png','icon-512.png','apple-touch-icon.png','manifest.webmanifest','a1.json'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==location.origin)return;
